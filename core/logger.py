@@ -10,5 +10,4 @@ class BotLogger:
         line = f"[{now} UTC] {message}"
         print(line)
         with open(self.logfile, "a", encoding="utf-8") as f:
-            f.write(line + "
-")
+            f.write(line + "\n")
