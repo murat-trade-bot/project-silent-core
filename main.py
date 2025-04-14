@@ -64,7 +64,7 @@ def run_bot_cycle():
         macd_line_15m, signal_line_15m = calculate_macd(closes_15m, 12, 26, 9)
         if macd_line_15m is not None and signal_line_15m is not None:
          macd_15m = round(macd_line_15m[-1], 2)
-            signal_15m = round(signal_line_15m[-1], 2)
+    signal_15m = round(signal_line_15m[-1], 2)
     
     # 1h verileri
     rsi_1h = macd_1h = signal_1h = None
