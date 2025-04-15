@@ -1,6 +1,7 @@
 import requests
 import time
 import json
+import random                    # EKLENDİ: random modülü
 from datetime import datetime, timedelta
 from core.logger import BotLogger
 from anti_binance_tespit import anti_detection
@@ -153,4 +154,4 @@ onchain_tracker = OnchainTracker()
 
 def track_onchain_activity(symbol="BTCUSDT"):
     """Dışa açık fonksiyon"""
-    return onchain_tracker.track_onchain_activity(symbol) 
+    return onchain_tracker.track_onchain_activity(symbol)
