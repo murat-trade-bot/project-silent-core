@@ -1,6 +1,7 @@
 import requests
 import json
 import time
+import random                      # EKLENDİ: random modülü
 from datetime import datetime, timedelta
 from core.logger import BotLogger
 from anti_binance_tespit import anti_detection
@@ -153,4 +154,4 @@ sentiment_analyzer = SentimentAnalyzer()
 
 def analyze_sentiment(symbol="BTCUSDT"):
     """Dışa açık fonksiyon"""
-    return sentiment_analyzer.analyze_sentiment(symbol) 
+    return sentiment_analyzer.analyze_sentiment(symbol)
