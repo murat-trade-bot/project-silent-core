@@ -18,7 +18,10 @@ class AntiDetectionSystem:
         ]
         self.proxy_list = []
         self.current_proxy_index = 0
-        self.load_proxies()
+
+        # Sadece proxy aktifse yüklemeyi dene
+        if settings.USE_PROXY:
+            self.load_proxies()
 
     def load_proxies(self):
         """Proxy listesini internetten veya dosyadan yükler"""
