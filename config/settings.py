@@ -57,7 +57,7 @@ NOTIFIER_ENABLED = True
 ANTI_BINANCE_TESPIT_ENABLED = True
 
 # --- Proxy Ayarları ---
-USE_PROXY = True                      # Proxy kullanılsın mı?
+USE_PROXY = False                      # Proxy kullanılsın mı?
 PROXY_LIST_PATH = "proxy_list.txt"   # Proxy listesi buradan yüklenecek
 API_TIMEOUT = 10                     # API istekleri için timeout süresi
 PROXY_TIMEOUT = 15                  # Proxy kaynaklı isteklerde timeout süresi
