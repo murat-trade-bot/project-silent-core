@@ -1,10 +1,14 @@
-﻿import os
+import os
 from dotenv import load_dotenv
 
 load_dotenv()
 
 BINANCE_API_KEY = os.getenv("BINANCE_API_KEY", "")
 BINANCE_API_SECRET = os.getenv("BINANCE_API_SECRET", "")
+
+NEWS_API_KEY = os.getenv("NEWS_API_KEY", "")
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN", "")
+TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "")
 
 TESTNET_MODE = True
 PAPER_TRADING = True
@@ -41,5 +45,8 @@ ENABLE_AUTO_STRATEGY_OPTIMIZER = True
 NOTIFIER_ENABLED = True
 ANTI_BINANCE_TESPIT_ENABLED = True
 
-TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN", "")
-TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "")
+# Proxy Ayarları
+USE_PROXY = True  # Hatalarda geçici olarak False yapılabilir
+PROXY_LIST_PATH = "proxy_list.txt"
+API_TIMEOUT = 10
+PROXY_TIMEOUT = 15
