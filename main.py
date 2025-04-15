@@ -114,7 +114,7 @@ def run_bot_cycle():
 
     # Karar ve log
     decision = strategy.decide_trade()
-    action = decision.get(\"action\")
+    action = decision.get("action")
     reason = decision.get(\"reason\", \"\")
     logger.log(f\"[CYCLE] Mode={current_mode}, Risk={risk_level}, Press={liquidity_pressure}, \"
                f\"RSI15={rsi_15m}, RSI1h={rsi_1h}, MACD1h={macd_1h}/{signal_1h}, \"
