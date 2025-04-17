@@ -4,6 +4,10 @@ from dotenv import load_dotenv
 # .env dosyasını yükle
 load_dotenv()
 
+# --- Spot İşlemler ---
+# Birden fazla sembolü listelemek için:
+SYMBOLS = os.getenv("SYMBOLS", "BTCUSDT,ETHUSDT,BNBUSDT").split(",")
+
 # --- API Anahtarları ---
 BINANCE_API_KEY = os.getenv("BINANCE_API_KEY", "")
 BINANCE_API_SECRET = os.getenv("BINANCE_API_SECRET", "")
@@ -12,47 +16,34 @@ NEWS_API_KEY = os.getenv("NEWS_API_KEY", "")
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN", "")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "")
 
-# Anahtar eksikse uyarı loglanabilir (gelişmiş hata kontrolü için öneri)
-if not NEWS_API_KEY:
-    print("[WARN] NEWS_API_KEY boş! .env dosyasına geçerli anahtar girilmelidir.")
+# --- Bot Çalışma Parametreleri ---
+# Her sembol döngü arası bekleme (sn)
+CYCLE_INTERVAL = 10
+CYCLE_JITTER_MIN = 0
+CYCLE_JITTER_MAX = 5
 
-# --- Bot Modları ---
-TESTNET_MODE = True
-PAPER_TRADING = True
-SYMBOL = "BTCUSDT"
+# Stealth modu parametreleri
+STEALTH_DROP_CHANCE = 0.02
+STEALTH_SLEEP_CHANCE = 0.0  # Uyutmayı devre dışı bıraktık
+STEALTH_SLEEP_MIN = 0
+STEALTH_SLEEP_MAX = 0
+STEALTH_ORDER_SIZE_JITTER = 0.01
 
-# --- Döngü Ayarları ---
-CYCLE_INTERVAL = 60
-CYCLE_JITTER_MIN = -20
-CYCLE_JITTER_MAX = 20
+# Rate‑limit ve retry
+MAX_RETRIES = 5
+RETRY_WAIT_TIME = 5
 
-# --- Stealth (Gizlenme) Ayarları ---
-STEALTH_DROP_CHANCE = 0.1
-STEALTH_SLEEP_CHANCE = 0.05
-STEALTH_SLEEP_MIN = 10
-STEALTH_SLEEP_MAX = 30
-STEALTH_ORDER_SIZE_JITTER = 0.05
+# --- İşlem Hacmi & Frekans ---
+MAX_TRADES_PER_HOUR = 20
+MIN_INTERVAL_BETWEEN_TRADES = 60  # saniye
 
-# --- Kar/Zarar Yönetimi ---
-TAKE_PROFIT_RATIO = 0.02
-STOP_LOSS_RATIO = 0.005
+# --- Hedef & Raporlama ---
+TARGET_USDT = 3580122
+PHASES = 6
 
-# --- ATR StopLoss ---
-USE_ATR_STOPLOSS = True
-ATR_PERIOD = 14
-ATR_MULTIPLIER = 1.2
-
-# --- Pozisyon Boyutu ---
-POSITION_SIZE_PCT = 0.005
-
-# --- Loglama ---
-INITIAL_BALANCE = 10000.0
-CSV_LOG_FILE = "trades_history.csv"
+# --- Log & Kayıt ---
 LOG_FILE = "bot_logs.txt"
-
-# --- Retry Mekanizması ---
-MAX_RETRIES = 3
-RETRY_WAIT_TIME = 10
+CSV_LOG_FILE = "trades_history.csv"
 
 # --- Opsiyonel Modüller ---
 ENABLE_PERFORMANCE_ANALYZER = True
