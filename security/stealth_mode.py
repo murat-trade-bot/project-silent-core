@@ -1,6 +1,9 @@
 import random
 import time
 from config import settings
+from core.logger import BotLogger
+
+logger = BotLogger()
 
 class StealthMode:
     def __init__(self):
@@ -12,15 +15,19 @@ class StealthMode:
 
     def maybe_drop_trade(self):
         if random.random() < self.drop_chance:
-            print("[STEALTH] İşlem iptal edildi (drop).")
+            logger.log("[STEALTH] İşlem iptal edildi (drop).", level="WARNING")
             return True
         return False
 
     def maybe_enter_sleep(self):
+        # Uyutmayı tamamen devre dışı bırakmak için settings.STEALTH_SLEEP_CHANCE = 0 yapılabilir
+        if self.sleep_chance <= 0:
+            return
         if random.random() < self.sleep_chance:
             d = random.randint(self.sleep_min, self.sleep_max)
-            print(f"[STEALTH] Botu uyutuyoruz: {d} sn")
-            time.sleep(d)
+            logger.log(f"[STEALTH] Botu uyutuyoruz: {d} sn", level="INFO")
+            # Uyutma satırı yoruma alındı:
+            # time.sleep(d)
 
     def apply_order_size_jitter(self, original_size: float):
         delta = original_size * self.size_jitter
@@ -31,4 +38,4 @@ class StealthMode:
         self.drop_chance = min(0.3, settings.STEALTH_DROP_CHANCE + current_load * 0.01)
         return self.drop_chance
 
-stealth = StealthMode() 
+stealth = StealthMode()
