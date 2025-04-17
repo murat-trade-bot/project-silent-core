@@ -14,15 +14,18 @@ class BotLogger:
             os.makedirs(log_dir)
 
     def log(self, message, level="INFO"):
-        """Log mesajını hem konsola hem dosyaya yazar"""
-        now = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
-        line = f"[{now} UTC] [{level}] {message}"
+        """Log mesajını hem konsola hem dosyaya yazar (yerel saat dilimi)"""
+        # Yerel zamanı kullanmak için datetime.now()
+        now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        line = f"[{now}] [{level}] {message}"
         print(line)
         try:
             with open(self.logfile, "a", encoding="utf-8") as f:
                 f.write(line + "\n")
         except Exception as e:
-            print(f"[LOGGER] Dosyaya yazılamadı: {e}")
+            # Hata durumunda yine yerel saati gösterir
+            err_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            print(f"[{err_time}] [LOGGER] Dosyaya yazılamadı: {e}")
 
     def info(self, message):
         self.log(message, level="INFO")
