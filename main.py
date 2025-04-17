@@ -24,9 +24,11 @@ from modules.performance_optimization import optimize_performance_infrastructure
 
 logger = BotLogger()
 
-def run_bot_cycle():
+def run_bot_cycle(symbol):
     # (0) İnsanvari gecikme
     time.sleep(random.uniform(2, 10))
+
+    logger.log(f"[CYCLE] {symbol} için döngü başlıyor.", level="INFO")
 
     # (1) Stealth: Rastgele uyuma
     stealth.maybe_enter_sleep()
@@ -40,18 +42,18 @@ def run_bot_cycle():
 
     # (4) Order Book analizi
     ob_analyzer = OrderBookAnalyzer()
+    ob_analyzer.symbol = symbol
     ob_info = ob_analyzer.analyze_liquidity_zones()
     liquidity_pressure = ob_info.get("liquidity_pressure", "neutral")
 
     # (5) Teknik analiz – Multi-timeframe (15m ve 1h)
-    symbol = settings.SYMBOL
     ohlcv_15m = fetch_ohlcv_from_binance(symbol, "15m", 100)
     ohlcv_1h = fetch_ohlcv_from_binance(symbol, "1h", 100)
 
     # (5a) Haber & Sentiment Analizi
-    sentiment = analyze_sentiment()
+    sentiment = analyze_sentiment(symbol)
     # (5b) On-chain & Balina Takibi
-    onchain_data = track_onchain_activity()
+    onchain_data = track_onchain_activity(symbol)
 
     # 15m verileri için hesaplamalar
     rsi_15m = macd_15m = signal_15m = None
@@ -61,7 +63,7 @@ def run_bot_cycle():
         if rsi_list_15m:
             rsi_15m = round(rsi_list_15m[-1], 2)
         macd_line_15m, signal_line_15m = calculate_macd(closes_15m, 12, 26, 9)
-        if macd_line_15m is not None and signal_line_15m is not None and len(signal_line_15m) > 0:
+        if macd_line_15m and signal_line_15m:
             macd_15m = round(macd_line_15m[-1], 2)
             signal_15m = round(signal_line_15m[-1], 2)
 
@@ -73,7 +75,7 @@ def run_bot_cycle():
         if rsi_list_1h:
             rsi_1h = round(rsi_list_1h[-1], 2)
         macd_line_1h, signal_line_1h = calculate_macd(closes_1h, 12, 26, 9)
-        if macd_line_1h is not None and signal_line_1h is not None and len(signal_line_1h) > 0:
+        if macd_line_1h and signal_line_1h:
             macd_1h = round(macd_line_1h[-1], 2)
             signal_1h = round(signal_line_1h[-1], 2)
         if settings.USE_ATR_STOPLOSS:
@@ -87,6 +89,7 @@ def run_bot_cycle():
     # (7) Strateji karar mekanizması
     strategy = Strategy()
     strategy.update_context(
+        symbol=symbol,
         mode=current_mode,
         risk=risk_level,
         pressure=liquidity_pressure,
@@ -112,40 +115,54 @@ def run_bot_cycle():
     decision = strategy.decide_trade()
     action = decision.get("action")
     reason = decision.get("reason", "")
-    logger.log(f"[CYCLE] Mode={current_mode}, Risk={risk_level}, Press={liquidity_pressure}, "
-               f"RSI15={rsi_15m}, RSI1h={rsi_1h}, MACD1h={macd_1h}/{signal_1h}, "
-               f"Action={action}, Reason={reason}")
+    logger.log(
+        f"[CYCLE] Sym={symbol}, Mode={current_mode}, Risk={risk_level}, "
+        f"RSI15={rsi_15m}, RSI1h={rsi_1h}, MACD1h={macd_1h}/{signal_1h}, "
+        f"Action={action}, Reason={reason}"
+    )
 
     # Stealth kontrolü: Eğer stealth modülü işlemi iptal ederse
     if stealth.maybe_drop_trade():
-        logger.log("[STEALTH] İşlem iptal.")
+        logger.log(f"[STEALTH] {symbol} işlemi iptal edildi.", level="WARNING")
         return
 
     # Emir yürütme
     executor = ExecutorManager()
-    executor.manage_position(action)
+    executor.manage_position(symbol, action)
+
 
 def main_loop():
     logger.log("Project Silent Core (Advanced & Üretim Seviyesi) başlatılıyor...")
     retry_count = 0
-    while True:
-        try:
-            run_bot_cycle()
-            retry_count = 0
-        except Exception as e:
-            logger.log("[ERROR] Döngü hatası: " + str(e))
-            logger.log(traceback.format_exc())
-            retry_count += 1
-            if retry_count < settings.MAX_RETRIES:
-                wait_time = settings.RETRY_WAIT_TIME * retry_count
-                logger.log(f"[ERROR] {retry_count}. retry, {wait_time}s bekleniyor...")
-                time.sleep(wait_time)
-            else:
-                logger.log("[ERROR] Maksimum retry sayısına ulaşıldı, manuel müdahale gerekebilir.")
-                retry_count = 0
+    last_trade_time = {s: 0 for s in settings.SYMBOLS}
+    trades_count = {s: 0 for s in settings.SYMBOLS}
 
-        sleep_time = max(settings.CYCLE_INTERVAL + random.randint(settings.CYCLE_JITTER_MIN, settings.CYCLE_JITTER_MAX), 10)
-        time.sleep(sleep_time)
+    while True:
+        for symbol in settings.SYMBOLS:
+            now = time.time()
+            # Saatlik sayaç sıfırlama
+            if now - last_trade_time[symbol] > 3600:
+                trades_count[symbol] = 0
+
+            # Frekans kontrolü
+            if trades_count[symbol] < settings.MAX_TRADES_PER_HOUR and \
+               now - last_trade_time[symbol] >= settings.MIN_INTERVAL_BETWEEN_TRADES:
+                try:
+                    run_bot_cycle(symbol)
+                    trades_count[symbol] += 1
+                    last_trade_time[symbol] = now
+                    retry_count = 0
+                except ConnectionError:
+                    logger.log(f"[ERROR] İnternet bağlantısı kesildi ({symbol}), 30sn bekleniyor...", level="ERROR")
+                    time.sleep(30)
+                except Exception as e:
+                    logger.log(f"[ERROR] Döngü hatası ({symbol}): {e}", level="ERROR")
+                    retry_count += 1
+                    if retry_count >= settings.MAX_RETRIES:
+                        logger.log("[ERROR] Maksimum retry sayısına ulaşıldı, yeniden başlatılıyor...", level="ERROR")
+                        retry_count = 0
+            # Döngü arası bekleme
+            time.sleep(settings.CYCLE_INTERVAL + random.randint(settings.CYCLE_JITTER_MIN, settings.CYCLE_JITTER_MAX))
 
 if __name__ == "__main__":
     main_loop()
