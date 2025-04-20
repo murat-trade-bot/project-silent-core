@@ -56,6 +56,10 @@ MIN_INTERVAL_BETWEEN_TRADES = int(_get_env("MIN_INTERVAL_BETWEEN_TRADES", "60"))
 TARGET_USDT = float(_get_env("TARGET_USDT", "3580122"))  # One-year profit goal
 PHASES = int(_get_env("PHASES", "6"))  # Chart/reporting phases
 
+# --- Initial Balance ---
+# Starting capital for paper trading or performance calculations
+INITIAL_BALANCE = float(_get_env("INITIAL_BALANCE", "231"))
+
 # --- Logging & Persistence ---
 LOG_FILE = _get_env("LOG_FILE", "bot_logs.txt")
 CSV_LOG_FILE = _get_env("CSV_LOG_FILE", "trades_history.csv")
