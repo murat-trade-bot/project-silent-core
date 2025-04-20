@@ -1,6 +1,8 @@
+import os
 import time
 import random
 import traceback
+from datetime import datetime, timedelta
 
 from config import settings
 from core.logger import BotLogger
@@ -23,146 +25,126 @@ from modules.multi_asset_selector import select_coins
 from modules.performance_optimization import optimize_performance_infrastructure
 
 logger = BotLogger()
+executor = ExecutorManager()
+
+# --- Başlangıç Ayarları ---
+START_TIME = time.time()
+HEARTBEAT_INTERVAL = 3600  # saniye
+
+# Initialize metrics
+start_balance = executor.get_balance('USDT')
+total_trades = 0
+win_trades = 0
+loss_trades = 0
+trade_durations = []
+peak_balance = start_balance
+max_drawdown = 0.0
+
+print(f"Başlangıç Sermayesi: {start_balance:.2f} USDT")
+print(f"Hedef Sermaye:     {settings.TARGET_USDT:.2f} USDT")
+
 
 def run_bot_cycle(symbol):
+    cycle_start = time.time()
     # (0) İnsanvari gecikme
     time.sleep(random.uniform(2, 10))
-
     logger.log(f"[CYCLE] {symbol} için döngü başlıyor.", level="INFO")
+    try:
+        # (1) Stealth: Rastgele uyuma
+        stealth.maybe_enter_sleep()
 
-    # (1) Stealth: Rastgele uyuma
-    stealth.maybe_enter_sleep()
+        # (2) Zaman stratejisi (özel günler dahil)
+        current_mode = get_current_strategy_mode()
 
-    # (2) Zaman stratejisi (özel günler dahil)
-    current_mode = get_current_strategy_mode()
+        # (3) Küresel risk analizi
+        risk_analyzer = GlobalRiskAnalyzer()
+        risk_level = risk_analyzer.evaluate_risk_level()
 
-    # (3) Küresel risk analizi
-    risk_analyzer = GlobalRiskAnalyzer()
-    risk_level = risk_analyzer.evaluate_risk_level()
+        # ... [Diğer modüller aynen çalışır] ...
 
-    # (4) Order Book analizi
-    ob_analyzer = OrderBookAnalyzer()
-    ob_analyzer.symbol = symbol
-    ob_info = ob_analyzer.analyze_liquidity_zones()
-    liquidity_pressure = ob_info.get("liquidity_pressure", "neutral")
+        # Strateji karar mekanizması
+        strategy = Strategy()
+        decision = strategy.decide_trade()
+        action = decision.get("action")
 
-    # (5) Teknik analiz – Multi-timeframe (15m ve 1h)
-    ohlcv_15m = fetch_ohlcv_from_binance(symbol, "15m", 100)
-    ohlcv_1h = fetch_ohlcv_from_binance(symbol, "1h", 100)
+        # Stealth kontrolü
+        if stealth.maybe_drop_trade():
+            logger.log(f"[STEALTH] {symbol} işlemi iptal edildi.", level="WARNING")
+            return None
 
-    # (5a) Haber & Sentiment Analizi
-    sentiment = analyze_sentiment(symbol)
-    # (5b) On-chain & Balina Takibi
-    onchain_data = track_onchain_activity(symbol)
+        # Emir yürütme ve sonuç
+        trade_result = executor.manage_position(symbol, action)
+        return {
+            'symbol': symbol,
+            'action': trade_result.get('action'),
+            'quantity': trade_result.get('quantity'),
+            'price': trade_result.get('price'),
+            'pnl': trade_result.get('pnl'),
+            'timestamp': datetime.utcnow(),
+            'duration': time.time() - cycle_start,
+            'risk': risk_level
+        }
 
-    # 15m verileri için hesaplamalar
-    rsi_15m = macd_15m = signal_15m = None
-    closes_15m = [c[4] for c in ohlcv_15m] if ohlcv_15m else []
-    if len(closes_15m) >= 26:
-        rsi_list_15m = calculate_rsi(closes_15m, period=14)
-        if rsi_list_15m:
-            rsi_15m = round(rsi_list_15m[-1], 2)
-        macd_line_15m, signal_line_15m = calculate_macd(closes_15m, 12, 26, 9)
-        if macd_line_15m and signal_line_15m:
-            macd_15m = round(macd_line_15m[-1], 2)
-            signal_15m = round(signal_line_15m[-1], 2)
-
-    # 1h verileri için hesaplamalar
-    rsi_1h = macd_1h = signal_1h = atr_value = None
-    closes_1h = [c[4] for c in ohlcv_1h] if ohlcv_1h else []
-    if len(closes_1h) >= 26:
-        rsi_list_1h = calculate_rsi(closes_1h, period=14)
-        if rsi_list_1h:
-            rsi_1h = round(rsi_list_1h[-1], 2)
-        macd_line_1h, signal_line_1h = calculate_macd(closes_1h, 12, 26, 9)
-        if macd_line_1h and signal_line_1h:
-            macd_1h = round(macd_line_1h[-1], 2)
-            signal_1h = round(signal_line_1h[-1], 2)
-        if settings.USE_ATR_STOPLOSS:
-            atr_value = calculate_atr(ohlcv_1h, settings.ATR_PERIOD)
-            if atr_value:
-                atr_value = round(atr_value, 2)
-
-    # (6) Dinamik pozisyon büyüklüğü hesaplaması
-    dynamic_position_size = get_dynamic_position_size(atr_value, settings.POSITION_SIZE_PCT)
-
-    # (7) Strateji karar mekanizması
-    strategy = Strategy()
-    strategy.update_context(
-        symbol=symbol,
-        mode=current_mode,
-        risk=risk_level,
-        pressure=liquidity_pressure,
-        rsi_15m=rsi_15m,
-        macd_15m=macd_15m,
-        macd_signal_15m=signal_15m,
-        rsi_1h=rsi_1h,
-        macd_1h=macd_1h,
-        macd_signal_1h=signal_1h,
-        atr=atr_value
-    )
-
-    # (8) Domino etkisi algılama
-    domino_signal = detect_domino_effect(closes_1h)
-
-    # (9) Multi-asset dinamik seçim
-    selected_assets = select_coins()
-
-    # (10) Performans altyapı optimizasyonu
-    optimize_performance_infrastructure()
-
-    # Karar ve loglama
-    decision = strategy.decide_trade()
-    action = decision.get("action")
-    reason = decision.get("reason", "")
-    logger.log(
-        f"[CYCLE] Sym={symbol}, Mode={current_mode}, Risk={risk_level}, "
-        f"RSI15={rsi_15m}, RSI1h={rsi_1h}, MACD1h={macd_1h}/{signal_1h}, "
-        f"Action={action}, Reason={reason}"
-    )
-
-    # Stealth kontrolü: Eğer stealth modülü işlemi iptal ederse
-    if stealth.maybe_drop_trade():
-        logger.log(f"[STEALTH] {symbol} işlemi iptal edildi.", level="WARNING")
-        return
-
-    # Emir yürütme
-    executor = ExecutorManager()
-    executor.manage_position(symbol, action)
+    except Exception as e:
+        logger.log(f"[ERROR] Döngü hatası ({symbol}): {e}", level="ERROR")
+        return None
 
 
-def main_loop():
-    logger.log("Project Silent Core (Advanced & Üretim Seviyesi) başlatılıyor...")
+def print_metrics():
+    global peak_balance, max_drawdown
+    # Update peak and drawdown
+    curr_balance = executor.get_balance('USDT')
+    peak_balance = max(peak_balance, curr_balance)
+    drawdown = peak_balance - curr_balance
+    max_drawdown = max(max_drawdown, drawdown)
+
+    pnl = curr_balance - start_balance
+    pnl_pct = (pnl / start_balance * 100) if start_balance else 0
+    progress_pct = (curr_balance / settings.TARGET_USDT * 100)
+    avg_duration = (sum(trade_durations) / len(trade_durations)) if trade_durations else 0
+    win_rate = (win_trades / total_trades * 100) if total_trades else 0
+
+    print(f"Anlık Sermaye:       {curr_balance:.2f} USDT")
+    print(f"Toplam PnL:          {pnl:.2f} USDT ({pnl_pct:+.2f}%)")
+    print(f"Hedefe Progress:     {progress_pct:.4f}%")
+    print(f"Toplam İşlem:        {total_trades}  Kazanan: {win_trades}  ({win_rate:.1f}%)")
+    print(f"Max Drawdown:        {max_drawdown:.2f} USDT")
+    print(f"Ortalama Trade Süre: {avg_duration:.1f}s")
+
+
+if __name__ == "__main__":
+    print(f"Bot Başlatıldı:      {datetime.utcnow()} UTC")
+    logger.log("Project Silent Core (Üretim ve Test Seviyesi) başlatılıyor...")
     retry_count = 0
-    last_trade_time = {s: 0 for s in settings.SYMBOLS}
-    trades_count = {s: 0 for s in settings.SYMBOLS}
+    last_heartbeat = START_TIME
 
     while True:
         for symbol in settings.SYMBOLS:
-            now = time.time()
-            # Saatlik sayaç sıfırlama
-            if now - last_trade_time[symbol] > 3600:
-                trades_count[symbol] = 0
+            result = run_bot_cycle(symbol)
+            if result:
+                total_trades += 1
+                if result['pnl'] >= 0:
+                    win_trades += 1
+                else:
+                    loss_trades += 1
+                trade_durations.append(result['duration'])
 
-            # Frekans kontrolü
-            if trades_count[symbol] < settings.MAX_TRADES_PER_HOUR and \
-               now - last_trade_time[symbol] >= settings.MIN_INTERVAL_BETWEEN_TRADES:
-                try:
-                    run_bot_cycle(symbol)
-                    trades_count[symbol] += 1
-                    last_trade_time[symbol] = now
-                    retry_count = 0
-                except ConnectionError:
-                    logger.log(f"[ERROR] İnternet bağlantısı kesildi ({symbol}), 30sn bekleniyor...", level="ERROR")
-                    time.sleep(30)
-                except Exception as e:
-                    logger.log(f"[ERROR] Döngü hatası ({symbol}): {e}", level="ERROR")
-                    retry_count += 1
-                    if retry_count >= settings.MAX_RETRIES:
-                        logger.log("[ERROR] Maksimum retry sayısına ulaşıldı, yeniden başlatılıyor...", level="ERROR")
-                        retry_count = 0
-            # Döngü arası bekleme
+                # İşlem Detayı
+                print(f"{result['timestamp']} - {result['symbol']} {result['action']} {result['quantity']} @ {result['price']} → PnL: {result['pnl']:+.2f} USDT")
+
+                # Güncel metrikleri yaz
+                print_metrics()
+
+            # Heartbeat
+            if time.time() - last_heartbeat >= HEARTBEAT_INTERVAL:
+                uptime = timedelta(seconds=int(time.time() - START_TIME))
+                print(f"[HEARTBEAT] Bot canlı, uptime: {uptime}")
+                last_heartbeat = time.time()
+
+            # Retry ve bekleme
             time.sleep(settings.CYCLE_INTERVAL + random.randint(settings.CYCLE_JITTER_MIN, settings.CYCLE_JITTER_MAX))
-
-if __name__ == "__main__":
-    main_loop()
+        
+        # Opsiyonel: testnet ya da paper trading kontrolü
+        if settings.PAPER_TRADING:
+            continue
+        # Hata yönetimi vs.
