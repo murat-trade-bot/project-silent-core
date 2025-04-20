@@ -52,6 +52,10 @@ STEALTH_ORDER_SIZE_JITTER = float(_get_env("STEALTH_ORDER_SIZE_JITTER", "0.01"))
 MAX_TRADES_PER_HOUR = int(_get_env("MAX_TRADES_PER_HOUR", "20"))  # Caps hourly trades
 MIN_INTERVAL_BETWEEN_TRADES = int(_get_env("MIN_INTERVAL_BETWEEN_TRADES", "60"))  # Min seconds between trades
 
+# --- Position Sizing ---
+# Fraction of current balance to use per trade (e.g., 0.01 = 1%)
+POSITION_SIZE_PCT = float(_get_env("POSITION_SIZE_PCT", "0.01"))
+
 # --- Targets & Phases ---
 TARGET_USDT = float(_get_env("TARGET_USDT", "3580122"))  # One-year profit goal
 PHASES = int(_get_env("PHASES", "6"))  # Chart/reporting phases
