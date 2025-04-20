@@ -6,7 +6,8 @@ Configuration settings for Project Silent Core.
 Loads environment variables and provides typed parameters for bot operation.
 """
 # Load .env file
-load_dotenv()
+dotenv_path = load_dotenv()
+
 
 def _get_env(name: str, default=None, required: bool = False) -> str:
     """
@@ -29,39 +30,55 @@ TELEGRAM_TOKEN = _get_env("TELEGRAM_TOKEN", default="")
 TELEGRAM_CHAT_ID = _get_env("TELEGRAM_CHAT_ID", default="")
 
 # --- Trading Mode Flags (Test & Live) ---
-# Enable Binance testnet for safe testing (True/False)
 TESTNET_MODE = _get_env("TESTNET_MODE", "True").lower() in ("true", "1", "yes")
-# Enable paper trading (simulation) (True/False)
 PAPER_TRADING = _get_env("PAPER_TRADING", "True").lower() in ("true", "1", "yes")
 
 # --- Bot Operation Parameters ---
-CYCLE_INTERVAL = int(_get_env("CYCLE_INTERVAL", "10"))  # Base wait time between symbol loops (seconds)
-CYCLE_JITTER_MIN = int(_get_env("CYCLE_JITTER_MIN", "0"))  # Minimum random jitter
-CYCLE_JITTER_MAX = int(_get_env("CYCLE_JITTER_MAX", "5"))  # Maximum random jitter
-MAX_RETRIES = int(_get_env("MAX_RETRIES", "5"))  # Max attempts on errors
-RETRY_WAIT_TIME = int(_get_env("RETRY_WAIT_TIME", "5"))  # Wait time between retries (seconds)
+CYCLE_INTERVAL = int(_get_env("CYCLE_INTERVAL", "10"))
+CYCLE_JITTER_MIN = int(_get_env("CYCLE_JITTER_MIN", "0"))
+CYCLE_JITTER_MAX = int(_get_env("CYCLE_JITTER_MAX", "5"))
+MAX_RETRIES = int(_get_env("MAX_RETRIES", "5"))
+RETRY_WAIT_TIME = int(_get_env("RETRY_WAIT_TIME", "5"))
 
 # --- Stealth Mode Parameters ---
-STEALTH_DROP_CHANCE = float(_get_env("STEALTH_DROP_CHANCE", "0.02"))  # Probability to skip an order
-STEALTH_SLEEP_CHANCE = float(_get_env("STEALTH_SLEEP_CHANCE", "0.0"))  # Probability to pause
-STEALTH_SLEEP_MIN = int(_get_env("STEALTH_SLEEP_MIN", "0"))  # Min sleep duration (seconds)
-STEALTH_SLEEP_MAX = int(_get_env("STEALTH_SLEEP_MAX", "0"))  # Max sleep duration (seconds)
-STEALTH_ORDER_SIZE_JITTER = float(_get_env("STEALTH_ORDER_SIZE_JITTER", "0.01"))  # Order size variance
+STEALTH_DROP_CHANCE = float(_get_env("STEALTH_DROP_CHANCE", "0.02"))
+STEALTH_SLEEP_CHANCE = float(_get_env("STEALTH_SLEEP_CHANCE", "0.0"))
+STEALTH_SLEEP_MIN = int(_get_env("STEALTH_SLEEP_MIN", "0"))
+STEALTH_SLEEP_MAX = int(_get_env("STEALTH_SLEEP_MAX", "0"))
+STEALTH_ORDER_SIZE_JITTER = float(_get_env("STEALTH_ORDER_SIZE_JITTER", "0.01"))
 
 # --- Rate Limit Controls ---
-MAX_TRADES_PER_HOUR = int(_get_env("MAX_TRADES_PER_HOUR", "20"))  # Caps hourly trades
-MIN_INTERVAL_BETWEEN_TRADES = int(_get_env("MIN_INTERVAL_BETWEEN_TRADES", "60"))  # Min seconds between trades
+MAX_TRADES_PER_HOUR = int(_get_env("MAX_TRADES_PER_HOUR", "20"))
+MIN_INTERVAL_BETWEEN_TRADES = int(_get_env("MIN_INTERVAL_BETWEEN_TRADES", "60"))
 
 # --- Position Sizing ---
-# Fraction of current balance to use per trade (e.g., 0.01 = 1%)
-POSITION_SIZE_PCT = float(_get_env("POSITION_SIZE_PCT", "0.01"))
+POSITION_SIZE_PCT = float(_get_env("POSITION_SIZE_PCT", "0.01"))  # Base fraction per trade
+
+# --- Phase Targets ---
+# Cumulative profit goals for each of 6 periods (USD)
+PHASE_TARGETS = [
+    3234.0,    # 25 Apr - 25 Jun
+    38808.0,   # 26 Jun - 26 Aug
+    388080.0,  # 27 Aug - 27 Oct
+    900000.0,  # 28 Oct - 28 Dec
+    1000000.0, # 29 Dec - 1 Feb
+    1250000.0  # 2 Feb - 2 Apr
+]
+
+# --- Technical Indicator Thresholds ---
+RSI_OVERSOLD = float(_get_env("RSI_OVERSOLD", "30"))    # RSI lower bound
+RSI_OVERBOUGHT = float(_get_env("RSI_OVERBOUGHT", "70"))# RSI upper bound
+ATR_MIN_VOL = float(_get_env("ATR_MIN_VOL", "50"))      # Minimum ATR to allow trades
+
+# --- Decision Engine Tuning ---
+SCORE_BUY_THRESHOLD = float(_get_env("SCORE_BUY_THRESHOLD", "1.5"))
+TRADE_DROP_CHANCE = float(_get_env("TRADE_DROP_CHANCE", "0.02"))  # Jitter drop probability
 
 # --- Targets & Phases ---
-TARGET_USDT = float(_get_env("TARGET_USDT", "3580122"))  # One-year profit goal
-PHASES = int(_get_env("PHASES", "6"))  # Chart/reporting phases
+TARGET_USDT = float(_get_env("TARGET_USDT", "3580122"))
+PHASES = int(_get_env("PHASES", "6"))
 
 # --- Initial Balance ---
-# Starting capital for paper trading or performance calculations
 INITIAL_BALANCE = float(_get_env("INITIAL_BALANCE", "231"))
 
 # --- Logging & Persistence ---
@@ -77,5 +94,5 @@ ANTI_BINANCE_TESPIT_ENABLED = _get_env("ANTI_BINANCE_TESPIT_ENABLED", "True").lo
 # --- Proxy Settings ---
 USE_PROXY = _get_env("USE_PROXY", "False").lower() in ("true", "1", "yes")
 PROXY_LIST_PATH = _get_env("PROXY_LIST_PATH", "proxy_list.txt")
-API_TIMEOUT = int(_get_env("API_TIMEOUT", "10"))  # Seconds
-PROXY_TIMEOUT = int(_get_env("PROXY_TIMEOUT", "15"))  # Seconds
+API_TIMEOUT = int(_get_env("API_TIMEOUT", "10"))
+PROXY_TIMEOUT = int(_get_env("PROXY_TIMEOUT", "15"))  
