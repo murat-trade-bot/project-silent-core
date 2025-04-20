@@ -1,5 +1,5 @@
 import pandas as pd
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 """
 Weekly report generator: reads trade history and outputs buy/sell trades from the last 7 days.
@@ -12,15 +12,15 @@ def generate_weekly_report(csv_path='trades_history.csv') -> pd.DataFrame:
     except FileNotFoundError:
         raise FileNotFoundError(f"CSV file not found: {csv_path}")
 
-    # Ensure timestamp column exists and convert to datetime
+    # Ensure timestamp column exists and convert to datetime (UTC-aware)
     if 'timestamp' not in df.columns:
         raise ValueError("'timestamp' column is required in CSV for weekly report.")
     df['timestamp'] = pd.to_datetime(df['timestamp'], utc=True, errors='coerce')
     # Drop rows where timestamp could not be parsed
     df = df.dropna(subset=['timestamp'])
 
-    # Filter for last 7 days
-    one_week_ago = datetime.utcnow() - timedelta(days=7)
+    # Filter for last 7 days using UTC-aware Timestamp
+    one_week_ago = pd.Timestamp.now(tz='UTC') - pd.Timedelta(days=7)
     weekly = df[df['timestamp'] >= one_week_ago]
 
     # Select only relevant columns
