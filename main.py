@@ -1,7 +1,7 @@
 import os
 import time
 import random
-import traceback
+import csv
 from datetime import datetime, timedelta
 
 from config import settings
@@ -30,8 +30,9 @@ executor = ExecutorManager()
 # --- Başlangıç Ayarları ---
 START_TIME = time.time()
 HEARTBEAT_INTERVAL = 3600  # saniye
+CSV_FILE = settings.CSV_LOG_FILE
 
-# Initialize metrics
+# --- İstatistik Değişkenleri ---
 start_balance = executor.get_balance('USDT')
 total_trades = 0
 win_trades = 0
@@ -40,8 +41,29 @@ trade_durations = []
 peak_balance = start_balance
 max_drawdown = 0.0
 
+# Başlangıç bilgisi
 print(f"Başlangıç Sermayesi: {start_balance:.2f} USDT")
 print(f"Hedef Sermaye:     {settings.TARGET_USDT:.2f} USDT")
+
+
+def log_trade_csv(trade: dict):
+    """
+    Append a trade record to CSV_FILE with header if not exists.
+    """
+    fieldnames = ['timestamp', 'symbol', 'action', 'quantity', 'price', 'pnl']
+    exists = os.path.isfile(CSV_FILE)
+    with open(CSV_FILE, 'a', newline='') as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        if not exists:
+            writer.writeheader()
+        writer.writerow({
+            'timestamp': trade['timestamp'].strftime('%Y-%m-%d %H:%M:%S'),
+            'symbol': trade['symbol'],
+            'action': trade['action'],
+            'quantity': trade['quantity'],
+            'price': trade['price'],
+            'pnl': trade['pnl']
+        })
 
 
 def run_bot_cycle(symbol):
@@ -50,29 +72,18 @@ def run_bot_cycle(symbol):
     time.sleep(random.uniform(2, 10))
     logger.log(f"[CYCLE] {symbol} için döngü başlıyor.", level="INFO")
     try:
-        # (1) Stealth: Rastgele uyuma
+        # (1) Stealth
         stealth.maybe_enter_sleep()
-
-        # (2) Zaman stratejisi (özel günler dahil)
+        # (2) Zaman stratejisi
         current_mode = get_current_strategy_mode()
-
         # (3) Küresel risk analizi
-        risk_analyzer = GlobalRiskAnalyzer()
-        risk_level = risk_analyzer.evaluate_risk_level()
-
-        # ... [Diğer modüller aynen çalışır] ...
-
-        # Strateji karar mekanizması
-        strategy = Strategy()
-        decision = strategy.decide_trade()
+        risk_level = GlobalRiskAnalyzer().evaluate_risk_level()
+        # ... diğer modüller çalıştırılır
+        decision = Strategy().decide_trade()
         action = decision.get("action")
-
-        # Stealth kontrolü
         if stealth.maybe_drop_trade():
             logger.log(f"[STEALTH] {symbol} işlemi iptal edildi.", level="WARNING")
             return None
-
-        # Emir yürütme ve sonuç
         trade_result = executor.manage_position(symbol, action)
         return {
             'symbol': symbol,
@@ -81,10 +92,8 @@ def run_bot_cycle(symbol):
             'price': trade_result.get('price'),
             'pnl': trade_result.get('pnl'),
             'timestamp': datetime.utcnow(),
-            'duration': time.time() - cycle_start,
-            'risk': risk_level
+            'duration': time.time() - cycle_start
         }
-
     except Exception as e:
         logger.log(f"[ERROR] Döngü hatası ({symbol}): {e}", level="ERROR")
         return None
@@ -92,18 +101,15 @@ def run_bot_cycle(symbol):
 
 def print_metrics():
     global peak_balance, max_drawdown
-    # Update peak and drawdown
     curr_balance = executor.get_balance('USDT')
     peak_balance = max(peak_balance, curr_balance)
     drawdown = peak_balance - curr_balance
     max_drawdown = max(max_drawdown, drawdown)
-
     pnl = curr_balance - start_balance
     pnl_pct = (pnl / start_balance * 100) if start_balance else 0
     progress_pct = (curr_balance / settings.TARGET_USDT * 100)
     avg_duration = (sum(trade_durations) / len(trade_durations)) if trade_durations else 0
     win_rate = (win_trades / total_trades * 100) if total_trades else 0
-
     print(f"Anlık Sermaye:       {curr_balance:.2f} USDT")
     print(f"Toplam PnL:          {pnl:.2f} USDT ({pnl_pct:+.2f}%)")
     print(f"Hedefe Progress:     {progress_pct:.4f}%")
@@ -114,7 +120,6 @@ def print_metrics():
 
 if __name__ == "__main__":
     print(f"Bot Başlatıldı:      {datetime.utcnow()} UTC")
-    logger.log("Project Silent Core (Üretim ve Test Seviyesi) başlatılıyor...")
     retry_count = 0
     last_heartbeat = START_TIME
 
@@ -129,10 +134,11 @@ if __name__ == "__main__":
                     loss_trades += 1
                 trade_durations.append(result['duration'])
 
-                # İşlem Detayı
+                # İşlem detayını yazdır
                 print(f"{result['timestamp']} - {result['symbol']} {result['action']} {result['quantity']} @ {result['price']} → PnL: {result['pnl']:+.2f} USDT")
-
-                # Güncel metrikleri yaz
+                # CSV'ye kaydet
+                log_trade_csv(result)
+                # Metrikleri yazdır
                 print_metrics()
 
             # Heartbeat
@@ -141,10 +147,4 @@ if __name__ == "__main__":
                 print(f"[HEARTBEAT] Bot canlı, uptime: {uptime}")
                 last_heartbeat = time.time()
 
-            # Retry ve bekleme
             time.sleep(settings.CYCLE_INTERVAL + random.randint(settings.CYCLE_JITTER_MIN, settings.CYCLE_JITTER_MAX))
-        
-        # Opsiyonel: testnet ya da paper trading kontrolü
-        if settings.PAPER_TRADING:
-            continue
-        # Hata yönetimi vs.
