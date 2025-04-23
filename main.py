@@ -67,6 +67,7 @@ def log_trade_csv(trade: dict):
 
 
 def run_bot_cycle(symbol):
+    global start_balance
     cycle_start = time.time()
     # (0) İnsanvari gecikme
     time.sleep(random.uniform(2, 10))
@@ -78,12 +79,19 @@ def run_bot_cycle(symbol):
         current_mode = get_current_strategy_mode()
         # (3) Küresel risk analizi
         risk_level = GlobalRiskAnalyzer().evaluate_risk_level()
-        # ... diğer modüller çalıştırılır
-        decision = Strategy().decide_trade()
+
+        # --- Mevcut bakiye ve toplam PnL’i hesapla ---
+        current_balance = executor.get_balance('USDT')
+        current_pnl = current_balance - start_balance
+
+        # Strateji kararı
+        decision = Strategy().decide_trade(current_balance, current_pnl)
         action = decision.get("action")
+
         if stealth.maybe_drop_trade():
             logger.log(f"[STEALTH] {symbol} işlemi iptal edildi.", level="WARNING")
             return None
+
         trade_result = executor.manage_position(symbol, action)
         return {
             'symbol': symbol,
