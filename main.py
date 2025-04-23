@@ -84,16 +84,34 @@ def run_bot_cycle(symbol):
         current_balance = executor.get_balance('USDT')
         current_pnl = current_balance - start_balance
 
-        # Strateji kararı
-        decision = Strategy().decide_trade(current_balance, current_pnl)
-        action = decision.get("action")
+        # --- Mevcut bakiye ve toplam PnL’i hesapla ---
+current_balance = executor.get_balance('USDT')
+current_pnl = current_balance - start_balance
 
-        if stealth.maybe_drop_trade():
-            logger.log(f"[STEALTH] {symbol} işlemi iptal edildi.", level="WARNING")
-            return None
+# --- Strateji güncelleme ve karar verme ---
+strategy = Strategy()
+strategy.update_context(
+    symbol=symbol,
+    mode=current_mode,
+    risk=risk_level,
+    pressure="neutral",  # Likidite baskısını gerçek zamanlı eklemek mümkün
+    rsi_15m=None,
+    macd_15m=None,
+    macd_signal_15m=None,
+    rsi_1h=None,
+    macd_1h=None,
+    macd_signal_1h=None,
+    atr=None
+)
+decision = strategy.decide_trade(current_balance, current_pnl)
+action = decision.get("action")
 
-        trade_result = executor.manage_position(symbol, action)
-        return {
+if stealth.maybe_drop_trade():
+    logger.log(f"[STEALTH] {symbol} işlemi iptal edildi.", level="WARNING")
+    return None
+
+trade_result = executor.manage_position(symbol, action)
+return {
             'symbol': symbol,
             'action': trade_result.get('action'),
             'quantity': trade_result.get('quantity'),
