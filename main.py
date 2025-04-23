@@ -79,39 +79,41 @@ def run_bot_cycle(symbol):
         current_mode = get_current_strategy_mode()
         # (3) Küresel risk analizi
         risk_level = GlobalRiskAnalyzer().evaluate_risk_level()
+        # (4) Orderbook analizi (isteğe bağlı)
+        # ob_info = OrderBookAnalyzer().analyze_liquidity_zones()
+        # pressure = ob_info.get('liquidity_pressure', 'neutral')
+        pressure = 'neutral'
 
         # --- Mevcut bakiye ve toplam PnL’i hesapla ---
         current_balance = executor.get_balance('USDT')
         current_pnl = current_balance - start_balance
 
-        # --- Mevcut bakiye ve toplam PnL’i hesapla ---
-current_balance = executor.get_balance('USDT')
-current_pnl = current_balance - start_balance
+        # --- Strateji güncelleme ve karar verme ---
+        strategy = Strategy()
+        strategy.update_context(
+            symbol=symbol,
+            mode=current_mode,
+            risk=risk_level,
+            pressure=pressure,
+            rsi_15m=None,
+            macd_15m=None,
+            macd_signal_15m=None,
+            rsi_1h=None,
+            macd_1h=None,
+            macd_signal_1h=None,
+            atr=None
+        )
+        decision = strategy.decide_trade(current_balance, current_pnl)
+        action = decision.get("action")
 
-# --- Strateji güncelleme ve karar verme ---
-strategy = Strategy()
-strategy.update_context(
-    symbol=symbol,
-    mode=current_mode,
-    risk=risk_level,
-    pressure="neutral",  # Likidite baskısını gerçek zamanlı eklemek mümkün
-    rsi_15m=None,
-    macd_15m=None,
-    macd_signal_15m=None,
-    rsi_1h=None,
-    macd_1h=None,
-    macd_signal_1h=None,
-    atr=None
-)
-decision = strategy.decide_trade(current_balance, current_pnl)
-action = decision.get("action")
+        # Stealth drop
+        if stealth.maybe_drop_trade():
+            logger.log(f"[STEALTH] {symbol} işlemi iptal edildi.", level="WARNING")
+            return None
 
-if stealth.maybe_drop_trade():
-    logger.log(f"[STEALTH] {symbol} işlemi iptal edildi.", level="WARNING")
-    return None
-
-trade_result = executor.manage_position(symbol, action)
-return {
+        # Emir yürütme
+        trade_result = executor.manage_position(symbol, action)
+        return {
             'symbol': symbol,
             'action': trade_result.get('action'),
             'quantity': trade_result.get('quantity'),
@@ -162,9 +164,7 @@ if __name__ == "__main__":
 
                 # İşlem detayını yazdır
                 print(f"{result['timestamp']} - {result['symbol']} {result['action']} {result['quantity']} @ {result['price']} → PnL: {result['pnl']:+.2f} USDT")
-                # CSV'ye kaydet
                 log_trade_csv(result)
-                # Metrikleri yazdır
                 print_metrics()
 
             # Heartbeat
