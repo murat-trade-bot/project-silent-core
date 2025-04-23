@@ -6,7 +6,7 @@ Configuration settings for Project Silent Core.
 Loads environment variables and provides typed parameters for bot operation.
 """
 # Load .env file
-dotenv_path = load_dotenv()
+load_dotenv()
 
 
 def _get_env(name: str, default=None, required: bool = False) -> str:
@@ -55,7 +55,6 @@ MIN_INTERVAL_BETWEEN_TRADES = int(_get_env("MIN_INTERVAL_BETWEEN_TRADES", "60"))
 POSITION_SIZE_PCT = float(_get_env("POSITION_SIZE_PCT", "0.01"))  # Base fraction per trade
 
 # --- Phase Targets ---
-# Cumulative profit goals for each of 6 periods (USD)
 PHASE_TARGETS = [
     3234.0,    # 25 Apr - 25 Jun
     38808.0,   # 26 Jun - 26 Aug
@@ -81,6 +80,11 @@ PHASES = int(_get_env("PHASES", "6"))
 # --- Initial Balance ---
 INITIAL_BALANCE = float(_get_env("INITIAL_BALANCE", "231"))
 
+# --- Risk Management Thresholds ---
+STOP_LOSS_RATIO = float(_get_env("STOP_LOSS_RATIO", "0.05"))    # 5% stop-loss
+TAKE_PROFIT_RATIO = float(_get_env("TAKE_PROFIT_RATIO", "0.10"))  # 10% take-profit
+MAX_DRAWDOWN_PCT = float(_get_env("MAX_DRAWDOWN_PCT", "0.30"))   # 30% max drawdown
+
 # --- Logging & Persistence ---
 LOG_FILE = _get_env("LOG_FILE", "bot_logs.txt")
 CSV_LOG_FILE = _get_env("CSV_LOG_FILE", "trades_history.csv")
@@ -95,4 +99,4 @@ ANTI_BINANCE_TESPIT_ENABLED = _get_env("ANTI_BINANCE_TESPIT_ENABLED", "True").lo
 USE_PROXY = _get_env("USE_PROXY", "False").lower() in ("true", "1", "yes")
 PROXY_LIST_PATH = _get_env("PROXY_LIST_PATH", "proxy_list.txt")
 API_TIMEOUT = int(_get_env("API_TIMEOUT", "10"))
-PROXY_TIMEOUT = int(_get_env("PROXY_TIMEOUT", "15"))  
+PROXY_TIMEOUT = int(_get_env("PROXY_TIMEOUT", "15"))
