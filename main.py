@@ -152,7 +152,10 @@ if __name__ == "__main__":
     last_heartbeat = START_TIME
 
     while True:
-        for symbol in settings.SYMBOLS:
+        # Dinamik altcoin seçimi
+        symbols_to_trade = select_coins() or settings.SYMBOLS
+
+        for symbol in symbols_to_trade:
             result = run_bot_cycle(symbol)
             if result:
                 total_trades += 1
