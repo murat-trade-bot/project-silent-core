@@ -71,6 +71,9 @@ def run_bot_cycle(symbol):
     cycle_start = time.time()
     # (0) İnsanvari gecikme
     time.sleep(random.uniform(2, 10))
+    # Cycle log to console
+    cycle_time = datetime.utcnow()
+    print(f"{cycle_time} [CYCLE] {symbol} için döngü başlıyor.")
     logger.log(f"[CYCLE] {symbol} için döngü başlıyor.", level="INFO")
     try:
         # (1) Stealth
