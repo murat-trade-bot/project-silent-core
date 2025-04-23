@@ -52,9 +52,24 @@ class Strategy:
             'macd_signal_1h': macd_signal_1h,
             'atr': atr
         }
-        # External signals
-        self.sentiment = analyze_sentiment(symbol)
-        self.onchain = track_onchain_activity(symbol)
+        # External signals: normalize to float
+        raw_sent = analyze_sentiment(symbol)
+        if isinstance(raw_sent, dict):
+            self.sentiment = float(raw_sent.get('score', 0.0))
+        else:
+            try:
+                self.sentiment = float(raw_sent)
+            except:
+                self.sentiment = 0.0
+
+        raw_chain = track_onchain_activity(symbol)
+        if isinstance(raw_chain, dict):
+            self.onchain = float(raw_chain.get('activity', 0.0))
+        else:
+            try:
+                self.onchain = float(raw_chain)
+            except:
+                self.onchain = 0.0
 
     def _check_period(self, current_balance):
         # Advance period if target reached or time elapsed (2 months each)
