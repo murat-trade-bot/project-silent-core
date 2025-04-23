@@ -78,7 +78,6 @@ class Strategy:
             self.current_period = min(self.current_period + 1, len(self.period_targets)-1)
             self.period_start_balance = current_balance
             self.period_start_time = datetime.utcnow()
-        # Time-based check: assume each period ~60 days
         if datetime.utcnow() - self.period_start_time >= timedelta(days=60):
             self.current_period = min(self.current_period + 1, len(self.period_targets)-1)
             self.period_start_balance = current_balance
@@ -93,56 +92,69 @@ class Strategy:
         self._check_period(current_balance)
         reason = []
         score = 0.0
-        # Position size scales with period (more aggressive if behind)
+        # Position size scales with period
         base_pct = settings.POSITION_SIZE_PCT
         size_pct = base_pct * (1 + self.current_period * 0.1)
         reason.append(f"Period{self.current_period+1}")
 
+        # Profit-target or stop-loss exit
+        profit_pct = (current_pnl / (self.period_start_balance or 1))
+        if profit_pct >= settings.TAKE_PROFIT_RATIO:
+            reason.append('TakeProfit')
+            return {'action': 'SELL', 'reason': '|'.join(reason), 'size_pct': 0.0}
+        if profit_pct <= -settings.STOP_LOSS_RATIO:
+            reason.append('StopLoss')
+            return {'action': 'SELL', 'reason': '|'.join(reason), 'size_pct': 0.0}
+
         # Mode & risk checks
-        if self.mode in ['holiday','macro_event']:
+        if self.mode in ['holiday', 'macro_event']:
             reason.append('NoTrade-Mode')
-            return {'action':'HOLD','reason':'|'.join(reason),'size_pct':0.0}
+            return {'action': 'HOLD', 'reason': '|'.join(reason), 'size_pct': 0.0}
         if self.risk == 'extreme_risk':
             reason.append('RiskStop')
-            return {'action':'HOLD','reason':'|'.join(reason),'size_pct':0.0}
+            return {'action': 'HOLD', 'reason': '|'.join(reason), 'size_pct': 0.0}
 
         # Liquidity
-        if self.pressure=='buy_pressure': score+=0.5; reason.append('BuyPres')
-        if self.pressure=='sell_pressure': score-=0.5; reason.append('SellPres')
+        if self.pressure == 'buy_pressure': score += 0.5; reason.append('BuyPres')
+        if self.pressure == 'sell_pressure': score -= 0.5; reason.append('SellPres')
 
         # Technical signals
-        r1=self.tech['rsi_1h']; rsig1=self.tech['macd_signal_1h']; m1=self.tech['macd_1h']
+        r1 = self.tech['rsi_1h']; rsig1 = self.tech['macd_signal_1h']; m1 = self.tech['macd_1h']
         if r1 is not None:
-            if r1<settings.RSI_OVERSOLD: score+=0.7; reason.append('RSI1hOS')
-            elif r1>settings.RSI_OVERBOUGHT: score-=0.7; reason.append('RSI1hOB')
+            if r1 < settings.RSI_OVERSOLD: score += 0.7; reason.append('RSI1hOS')
+            elif r1 > settings.RSI_OVERBOUGHT: score -= 0.7; reason.append('RSI1hOB')
         if m1 is not None and rsig1 is not None:
-            if m1>rsig1: score+=0.5; reason.append('MACD1hUp')
-            else: score-=0.5; reason.append('MACD1hDown')
-        r15=self.tech['rsi_15m']; rsig15=self.tech['macd_signal_15m']; m15=self.tech['macd_15m']
+            if m1 > rsig1: score += 0.5; reason.append('MACD1hUp')
+            else: score -= 0.5; reason.append('MACD1hDown')
+        r15 = self.tech['rsi_15m']; rsig15 = self.tech['macd_signal_15m']; m15 = self.tech['macd_15m']
         if r15 is not None:
-            if r15<settings.RSI_OVERSOLD: score+=0.3; reason.append('RSI15mOS')
-            elif r15>settings.RSI_OVERBOUGHT: score-=0.3; reason.append('RSI15mOB')
+            if r15 < settings.RSI_OVERSOLD: score += 0.3; reason.append('RSI15mOS')
+            elif r15 > settings.RSI_OVERBOUGHT: score -= 0.3; reason.append('RSI15mOB')
         if m15 is not None and rsig15 is not None:
-            if m15>rsig15: score+=0.3; reason.append('MACD15mUp')
-            else: score-=0.3; reason.append('MACD15mDown')
+            if m15 > rsig15: score += 0.3; reason.append('MACD15mUp')
+            else: score -= 0.3; reason.append('MACD15mDown')
 
         # Sentiment & on-chain
-        score+=self.sentiment*0.2; reason.append('Sentiment')
-        score+=self.onchain*0.2; reason.append('OnChain')
+        score += self.sentiment * 0.2; reason.append('Sentiment')
+        score += self.onchain * 0.2; reason.append('OnChain')
 
         # Volatility
-        atr=self.tech['atr']
-        if atr is not None and atr<settings.ATR_MIN_VOL: score*=0.5; reason.append('LowVol')
+        atr = self.tech['atr']
+        if atr is not None and atr < settings.ATR_MIN_VOL:
+            score *= 0.5; reason.append('LowVol')
 
-        # Final thresholds
-        thr=settings.SCORE_BUY_THRESHOLD
-        if score>=thr: action='BUY'
-        elif score<=-thr: action='SELL'
-        else: action='HOLD'
+        # Final decision
+        thr = settings.SCORE_BUY_THRESHOLD
+        if score >= thr:
+            action = 'BUY'
+        elif score <= -thr:
+            action = 'SELL'
+        else:
+            action = 'HOLD'
 
-        # Stealth jitter drop small trades occasionally
-        if action!='HOLD' and random.random()<settings.TRADE_DROP_CHANCE:
+        # Stealth jitter
+        if action != 'HOLD' and random.random() < settings.TRADE_DROP_CHANCE:
             reason.append('JitterDrop')
-            action='HOLD'
+            action = 'HOLD'
 
-        return {'action':action,'reason':'|'.join(reason),'size_pct':round(size_pct,4)}
+        return {'action': action, 'reason': '|'.join(reason), 'size_pct': round(size_pct, 4)}
