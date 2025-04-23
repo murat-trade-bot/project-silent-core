@@ -1,96 +1,92 @@
 import os
-import csv
-import time
-import math
-import random
-from datetime import datetime
+from dotenv import load_dotenv
 
-from config import settings
-from security.stealth_mode import stealth
-from core.logger import BotLogger
+"""
+Configuration settings for Project Silent Core.
+Loads environment variables and provides typed parameters for bot operation.
+"""
+# Load .env file
+load_dotenv()
 
-logger = BotLogger()
-
-class PaperTradeExecutor:
+def _get_env(name: str, default=None, required: bool = False) -> str:
     """
-    Simulates trading for paper trading mode.
-    Tracks USDT balance, positions, and computes pseudo-PnL.
+    Fetches an environment variable with optional default and requirement enforcement.
     """
-    def __init__(self, initial_balance: float = None):
-        # Starting USDT balance for simulation
-        self.balance_usdt = initial_balance if initial_balance is not None else settings.INITIAL_BALANCE
-        # Positions: {'BTC': amount, ...}
-        self.positions = {}
-        # Average entry prices: {'BTC': price, ...}
-        self.avg_prices = {}
-        # Ensure CSV log file exists
-        csv_file = settings.CSV_LOG_FILE
-        if not os.path.isfile(csv_file):
-            with open(csv_file, 'w', newline='') as f:
-                writer = csv.writer(f)
-                writer.writerow(['timestamp', 'symbol', 'action', 'quantity', 'price', 'pnl'])
+    value = os.getenv(name, default)
+    if required and not value:
+        raise EnvironmentError(f"Required environment variable '{name}' is not set.")
+    return value
 
-    def get_balance(self, asset: str) -> float:
-        # Return free balance for USDT or asset
-        if asset.upper() == 'USDT':
-            return self.balance_usdt
-        return self.positions.get(asset.upper(), 0.0)
+# --- Spot Trading Symbols ---
+SYMBOLS = [s.strip() for s in _get_env("SYMBOLS", "BTCUSDT,ETHUSDT,BNBUSDT").split(",") if s.strip()]
 
-    def manage_position(self, symbol: str, action: str) -> dict:
-        """
-        Simulates BUY or SELL for given symbol.
-        Returns dict with keys: action, quantity, price, pnl
-        """
-        base_asset = symbol.replace('USDT', '')
-        price = self._get_mock_price(symbol)
-        # Determine amount in USDT to trade
-        trade_usdt = self.balance_usdt * settings.POSITION_SIZE_PCT
-        # Apply stealth size jitter
-        trade_usdt = stealth.apply_order_size_jitter(trade_usdt)
-        if action.upper() == 'BUY':
-            qty = trade_usdt / price if price else 0.0
-            cost = qty * price
-            if cost > self.balance_usdt:
-                cost = self.balance_usdt
-                qty = cost / price
-            # Update balances and positions
-            self.balance_usdt -= cost
-            prev_qty = self.positions.get(base_asset, 0.0)
-            prev_avg = self.avg_prices.get(base_asset, 0.0)
-            new_total = prev_qty * prev_avg + cost
-            new_qty = prev_qty + qty
-            self.positions[base_asset] = new_qty
-            self.avg_prices[base_asset] = new_total / new_qty if new_qty else 0.0
-            pnl = 0.0
-        elif action.upper() == 'SELL':
-            held_qty = self.positions.get(base_asset, 0.0)
-            qty = held_qty
-            revenue = qty * price
-            self.balance_usdt += revenue
-            self.positions[base_asset] = 0.0
-            # Compute PnL
-            entry_price = self.avg_prices.get(base_asset, price)
-            pnl = revenue - (qty * entry_price)
-            self.avg_prices[base_asset] = 0.0
-        else:
-            # No action
-            return {'action': action, 'quantity': 0.0, 'price': 0.0, 'pnl': 0.0}
+# --- API Credentials (required) ---
+BINANCE_API_KEY = _get_env("BINANCE_API_KEY", required=True)
+BINANCE_API_SECRET = _get_env("BINANCE_API_SECRET", required=True)
 
-        # Log to CSV
-        timestamp = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
-        with open(settings.CSV_LOG_FILE, 'a', newline='') as f:
-            writer = csv.writer(f)
-            writer.writerow([timestamp, symbol, action, round(qty, 6), round(price, 2), round(pnl, 2)])
+# --- External Data Keys ---
+NEWS_API_KEY = _get_env("NEWS_API_KEY", default="")
+TELEGRAM_TOKEN = _get_env("TELEGRAM_TOKEN", default="")
+TELEGRAM_CHAT_ID = _get_env("TELEGRAM_CHAT_ID", default="")
 
-        # Log info
-        logger.log(f"[PAPER] {action} {qty:.6f} {base_asset} @ {price:.2f}, PnL: {pnl:.2f}")
-        return {'action': action, 'quantity': qty, 'price': price, 'pnl': round(pnl, 2)}
+# --- Trading Mode Flags ---
+TESTNET_MODE = _get_env("TESTNET_MODE", "True").lower() in ("true", "1", "yes")
+PAPER_TRADING = _get_env("PAPER_TRADING", "True").lower() in ("true", "1", "yes")
 
-    def _get_mock_price(self, symbol: str) -> float:
-        """
-        Returns a mock price based on time or environment.
-        """
-        # Simple sine wave mock around a base price setting
-        base = float(settings.MOCK_BASE_PRICE) if hasattr(settings, 'MOCK_BASE_PRICE') else 30000
-        amplitude = getattr(settings, 'MOCK_PRICE_AMPLITUDE', 1000)
-        return base + amplitude * math.sin(time.time() / 60)
+# --- Operation Parameters ---
+CYCLE_INTERVAL = int(_get_env("CYCLE_INTERVAL", "10"))
+CYCLE_JITTER_MIN = int(_get_env("CYCLE_JITTER_MIN", "0"))
+CYCLE_JITTER_MAX = int(_get_env("CYCLE_JITTER_MAX", "5"))
+MAX_RETRIES = int(_get_env("MAX_RETRIES", "5"))
+RETRY_WAIT_TIME = int(_get_env("RETRY_WAIT_TIME", "5"))
+
+# --- Stealth & Rate Limits ---
+STEALTH_DROP_CHANCE = float(_get_env("STEALTH_DROP_CHANCE", "0.02"))
+STEALTH_ORDER_SIZE_JITTER = float(_get_env("STEALTH_ORDER_SIZE_JITTER", "0.01"))
+MAX_TRADES_PER_HOUR = int(_get_env("MAX_TRADES_PER_HOUR", "20"))
+MIN_INTERVAL_BETWEEN_TRADES = int(_get_env("MIN_INTERVAL_BETWEEN_TRADES", "60"))
+
+# --- Position Sizing ---
+POSITION_SIZE_PCT = float(_get_env("POSITION_SIZE_PCT", "0.01"))
+
+# --- 6-Period Targets (USDT) ---
+PHASE_TARGETS = [
+    3234.0,
+    38808.0,
+    388080.0,
+    900000.0,
+    1000000.0,
+    1250000.0
+]
+
+# --- Technical Indicator Thresholds ---
+RSI_OVERSOLD = float(_get_env("RSI_OVERSOLD", "30"))
+RSI_OVERBOUGHT = float(_get_env("RSI_OVERBOUGHT", "70"))
+ATR_MIN_VOL = float(_get_env("ATR_MIN_VOL", "50"))
+
+# --- Decision Engine Tuning ---
+SCORE_BUY_THRESHOLD = float(_get_env("SCORE_BUY_THRESHOLD", "1.5"))
+TRADE_DROP_CHANCE = float(_get_env("TRADE_DROP_CHANCE", "0.02"))
+
+# --- Targets & Phases ---
+TARGET_USDT = float(_get_env("TARGET_USDT", "3580122"))
+PHASES = int(_get_env("PHASES", "6"))
+
+# --- Initial Balances ---
+INITIAL_BALANCE = float(_get_env("INITIAL_BALANCE", "231"))
+
+# --- Logging & Persistence ---
+LOG_FILE = _get_env("LOG_FILE", "bot_logs.txt")
+CSV_LOG_FILE = _get_env("CSV_LOG_FILE", "trades_history.csv")
+
+# --- Optional Feature Flags ---
+ENABLE_PERFORMANCE_ANALYZER = _get_env("ENABLE_PERFORMANCE_ANALYZER", "True").lower() in ("true", "1", "yes")
+ENABLE_AUTO_STRATEGY_OPTIMIZER = _get_env("ENABLE_AUTO_STRATEGY_OPTIMIZER", "True").lower() in ("true", "1", "yes")
+NOTIFIER_ENABLED = _get_env("NOTIFIER_ENABLED", "True").lower() in ("true", "1", "yes")
+ANTI_BINANCE_TESPIT_ENABLED = _get_env("ANTI_BINANCE_TESPIT_ENABLED", "True").lower() in ("true", "1", "yes")
+
+# --- Proxy Settings ---
+USE_PROXY = _get_env("USE_PROXY", "False").lower() in ("true", "1", "yes")
+PROXY_LIST_PATH = _get_env("PROXY_LIST_PATH", "proxy_list.txt")
+API_TIMEOUT = int(_get_env("API_TIMEOUT", "10"))
+PROXY_TIMEOUT = int(_get_env("PROXY_TIMEOUT", "15"))
