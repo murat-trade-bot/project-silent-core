@@ -23,6 +23,7 @@ from modules.strategy_optimizer import optimize_strategy_parameters
 from modules.domino_effect import detect_domino_effect
 from modules.multi_asset_selector import select_coins
 from modules.performance_optimization import optimize_performance_infrastructure
+from modules.period_manager import update_settings_for_period, perform_period_withdrawal
 
 logger = BotLogger()
 executor = ExecutorManager()
@@ -42,8 +43,10 @@ peak_balance = start_balance
 max_drawdown = 0.0
 
 # Başlangıç bilgisi
+update_settings_for_period()
+print(f"Bot Başlatıldı:      {datetime.utcnow()} UTC")
 print(f"Başlangıç Sermayesi: {start_balance:.2f} USDT")
-print(f"Hedef Sermaye:     {settings.TARGET_USDT:.2f} USDT")
+print(f"Hedef Sermaye:       {settings.TARGET_USDT:.2f} USDT")
 
 
 def log_trade_csv(trade: dict):
@@ -58,11 +61,11 @@ def log_trade_csv(trade: dict):
             writer.writeheader()
         writer.writerow({
             'timestamp': trade['timestamp'].strftime('%Y-%m-%d %H:%M:%S'),
-            'symbol': trade['symbol'],
-            'action': trade['action'],
-            'quantity': trade['quantity'],
-            'price': trade['price'],
-            'pnl': trade['pnl']
+            'symbol':    trade['symbol'],
+            'action':    trade['action'],
+            'quantity':  trade['quantity'],
+            'price':     trade['price'],
+            'pnl':       trade['pnl']
         })
 
 
@@ -71,10 +74,10 @@ def run_bot_cycle(symbol):
     cycle_start = time.time()
     # (0) İnsanvari gecikme
     time.sleep(random.uniform(2, 10))
-    # Cycle log to console
     cycle_time = datetime.utcnow()
     print(f"{cycle_time} [CYCLE] {symbol} için döngü başlıyor.")
     logger.log(f"[CYCLE] {symbol} için döngü başlıyor.", level="INFO")
+
     try:
         # (1) Stealth
         stealth.maybe_enter_sleep()
@@ -82,32 +85,25 @@ def run_bot_cycle(symbol):
         current_mode = get_current_strategy_mode()
         # (3) Küresel risk analizi
         risk_level = GlobalRiskAnalyzer().evaluate_risk_level()
-        # (4) Orderbook analizi (isteğe bağlı)
-        # ob_info = OrderBookAnalyzer().analyze_liquidity_zones()
-        # pressure = ob_info.get('liquidity_pressure', 'neutral')
+        # (4) Liquidity pressure (opsiyonel)
         pressure = 'neutral'
-
-        # --- Mevcut bakiye ve toplam PnL’i hesapla ---
+        # --- Bakiye ve PnL hesaplama ---
         current_balance = executor.get_balance('USDT')
-        current_pnl = current_balance - start_balance
+        current_pnl     = current_balance - start_balance
 
-        # --- Strateji güncelleme ve karar verme ---
+        # --- Strateji ve karar ---
         strategy = Strategy()
         strategy.update_context(
             symbol=symbol,
             mode=current_mode,
             risk=risk_level,
             pressure=pressure,
-            rsi_15m=None,
-            macd_15m=None,
-            macd_signal_15m=None,
-            rsi_1h=None,
-            macd_1h=None,
-            macd_signal_1h=None,
+            rsi_15m=None, macd_15m=None, macd_signal_15m=None,
+            rsi_1h=None, macd_1h=None, macd_signal_1h=None,
             atr=None
         )
         decision = strategy.decide_trade(current_balance, current_pnl)
-        action = decision.get("action")
+        action   = decision.get("action")
 
         # Stealth drop
         if stealth.maybe_drop_trade():
@@ -117,14 +113,15 @@ def run_bot_cycle(symbol):
         # Emir yürütme
         trade_result = executor.manage_position(symbol, action)
         return {
-            'symbol': symbol,
-            'action': trade_result.get('action'),
-            'quantity': trade_result.get('quantity'),
-            'price': trade_result.get('price'),
-            'pnl': trade_result.get('pnl'),
+            'symbol':  symbol,
+            'action':  trade_result.get('action'),
+            'quantity':trade_result.get('quantity'),
+            'price':   trade_result.get('price'),
+            'pnl':     trade_result.get('pnl'),
             'timestamp': datetime.utcnow(),
             'duration': time.time() - cycle_start
         }
+
     except Exception as e:
         logger.log(f"[ERROR] Döngü hatası ({symbol}): {e}", level="ERROR")
         return None
@@ -134,28 +131,34 @@ def print_metrics():
     global peak_balance, max_drawdown
     curr_balance = executor.get_balance('USDT')
     peak_balance = max(peak_balance, curr_balance)
-    drawdown = peak_balance - curr_balance
+    drawdown     = peak_balance - curr_balance
     max_drawdown = max(max_drawdown, drawdown)
-    pnl = curr_balance - start_balance
-    pnl_pct = (pnl / start_balance * 100) if start_balance else 0
+    pnl_pct      = ((curr_balance - start_balance) / start_balance * 100) if start_balance else 0
     progress_pct = (curr_balance / settings.TARGET_USDT * 100)
-    avg_duration = (sum(trade_durations) / len(trade_durations)) if trade_durations else 0
-    win_rate = (win_trades / total_trades * 100) if total_trades else 0
+    avg_dur      = (sum(trade_durations) / len(trade_durations)) if trade_durations else 0
+    win_rate     = (win_trades / total_trades * 100) if total_trades else 0
+
     print(f"Anlık Sermaye:       {curr_balance:.2f} USDT")
-    print(f"Toplam PnL:          {pnl:.2f} USDT ({pnl_pct:+.2f}%)")
+    print(f"Toplam PnL:          {(curr_balance - start_balance):.2f} USDT ({pnl_pct:+.2f}%)")
     print(f"Hedefe Progress:     {progress_pct:.4f}%")
     print(f"Toplam İşlem:        {total_trades}  Kazanan: {win_trades}  ({win_rate:.1f}%)")
     print(f"Max Drawdown:        {max_drawdown:.2f} USDT")
-    print(f"Ortalama Trade Süre: {avg_duration:.1f}s")
+    print(f"Ortalama Trade Süre: {avg_dur:.1f}s")
 
 
 if __name__ == "__main__":
-    print(f"Bot Başlatıldı:      {datetime.utcnow()} UTC")
-    retry_count = 0
+    retry_count    = 0
     last_heartbeat = START_TIME
 
     while True:
-        # Dinamik altcoin seçimi
+        # Her döngü başında dönem ayarlarını güncelle
+        period = update_settings_for_period()
+
+        # Dönem sonu çekim (opsiyonel, yorum satırından çıkarılabilir)
+        # if datetime.utcnow().date() == datetime.fromisoformat(period['end']).date():
+        #     perform_period_withdrawal(client, YOUR_WALLET_ADDRESS)
+
+        # Altcoin seçim
         symbols_to_trade = select_coins() or settings.SYMBOLS
 
         for symbol in symbols_to_trade:
@@ -168,8 +171,9 @@ if __name__ == "__main__":
                     loss_trades += 1
                 trade_durations.append(result['duration'])
 
-                # İşlem detayını yazdır
-                print(f"{result['timestamp']} - {result['symbol']} {result['action']} {result['quantity']} @ {result['price']} → PnL: {result['pnl']:+.2f} USDT")
+                print(f"{result['timestamp']} - {result['symbol']} "
+                      f"{result['action']} {result['quantity']} @ {result['price']} → "
+                      f"PnL: {result['pnl']:+.2f} USDT")
                 log_trade_csv(result)
                 print_metrics()
 
@@ -179,4 +183,6 @@ if __name__ == "__main__":
                 print(f"[HEARTBEAT] Bot canlı, uptime: {uptime}")
                 last_heartbeat = time.time()
 
-            time.sleep(settings.CYCLE_INTERVAL + random.randint(settings.CYCLE_JITTER_MIN, settings.CYCLE_JITTER_MAX))
+            time.sleep(settings.CYCLE_INTERVAL +
+                       random.randint(settings.CYCLE_JITTER_MIN,
+                                      settings.CYCLE_JITTER_MAX))
