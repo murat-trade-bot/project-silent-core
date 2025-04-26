@@ -168,3 +168,10 @@ CSV_LOG_FILE          = _get_env("CSV_LOG_FILE", "trades_history.csv")
 # --- Optional Feature Flags ---
 ENABLE_PERFORMANCE_ANALYZER      = _get_env("ENABLE_PERFORMANCE_ANALYZER", "True").lower() in ("true","1","yes")
 ENABLE_AUTO_STRATEGY_OPTIMIZER   = _get_env("ENABLE_AUTO_STRATEGY_OPTIMIZER","True").lower() in ("true","1","yes")
+ANTIBINANCE_TESPIT_ENABLED       = _get_env("ANTI_BINANCE_TESPIT_ENABLED","True").lower() in ("true","1","yes")
+
+# --- Proxy Settings ---
+USE_PROXY             = _get_env("USE_PROXY", "False").lower() in ("true", "1", "yes")
+PROXY_LIST_PATH       = _get_env("PROXY_LIST_PATH", "proxy_list.txt")
+API_TIMEOUT           = int(_get_env("API_TIMEOUT", "10"))
+PROXY_TIMEOUT         = int(_get_env("PROXY_TIMEOUT", "15"))
