@@ -43,7 +43,7 @@ peak_balance = start_balance
 max_drawdown = 0.0
 
 # Başlangıç bilgisi
-update_settings_for_period()
+dördüm = update_settings_for_period()
 print(f"Bot Başlatıldı:      {datetime.utcnow()} UTC")
 print(f"Başlangıç Sermayesi: {start_balance:.2f} USDT")
 print(f"Hedef Sermaye:       {settings.TARGET_USDT:.2f} USDT")
@@ -113,13 +113,13 @@ def run_bot_cycle(symbol):
         # Emir yürütme
         trade_result = executor.manage_position(symbol, action)
         return {
-            'symbol':  symbol,
-            'action':  trade_result.get('action'),
-            'quantity':trade_result.get('quantity'),
-            'price':   trade_result.get('price'),
-            'pnl':     trade_result.get('pnl'),
+            'symbol':    symbol,
+            'action':    trade_result.get('action'),
+            'quantity':  trade_result.get('quantity'),
+            'price':     trade_result.get('price'),
+            'pnl':       trade_result.get('pnl'),
             'timestamp': datetime.utcnow(),
-            'duration': time.time() - cycle_start
+            'duration':  time.time() - cycle_start
         }
 
     except Exception as e:
@@ -154,12 +154,11 @@ if __name__ == "__main__":
         # Her döngü başında dönem ayarlarını güncelle
         period = update_settings_for_period()
 
-        # Dönem sonu çekim (opsiyonel, yorum satırından çıkarılabilir)
-        # if datetime.utcnow().date() == datetime.fromisoformat(period['end']).date():
-        #     perform_period_withdrawal(client, YOUR_WALLET_ADDRESS)
-
-        # Altcoin seçim
-        symbols_to_trade = select_coins() or settings.SYMBOLS
+        # Altcoin seçim (dynamic / static kontrolü)
+        if settings.USE_DYNAMIC_SYMBOL_SELECTION:
+            symbols_to_trade = select_coins() or settings.SYMBOLS
+        else:
+            symbols_to_trade = settings.SYMBOLS
 
         for symbol in symbols_to_trade:
             result = run_bot_cycle(symbol)
