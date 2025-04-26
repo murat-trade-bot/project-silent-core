@@ -54,7 +54,7 @@ MIN_INTERVAL_BETWEEN_TRADES = int(_get_env("MIN_INTERVAL_BETWEEN_TRADES", "60"))
 # --- Position Sizing ---
 POSITION_SIZE_PCT = float(_get_env("POSITION_SIZE_PCT", "0.01"))  # Base fraction per trade
 
-# --- Phase Targets ---
+# --- Phase Targets (Simple List) ---
 PHASE_TARGETS = [
     3234.0,    # 25 Apr - 25 Jun
     38808.0,   # 26 Jun - 26 Aug
@@ -76,7 +76,7 @@ PERIODS = [
         "target_balance":  3234.0,
         "withdraw_amount": 0.0,
         "keep_balance":    None,
-        "growth_factor":   14.0,
+        "growth_factor":   14.0
     },
     {
         "name": "2. Dönem",
@@ -88,7 +88,7 @@ PERIODS = [
         "target_balance":  38808.0,
         "withdraw_amount": 0.0,
         "keep_balance":    None,
-        "growth_factor":   12.0,
+        "growth_factor":   12.0
     },
     {
         "name": "3. Dönem",
@@ -100,7 +100,7 @@ PERIODS = [
         "target_balance":  388080.0,
         "withdraw_amount": 238080.0,
         "keep_balance":    150000.0,
-        "growth_factor":   10.0,
+        "growth_factor":   10.0
     },
     {
         "name": "4. Dönem",
@@ -112,7 +112,7 @@ PERIODS = [
         "target_balance":  900000.0,
         "withdraw_amount": 700000.0,
         "keep_balance":    200000.0,
-        "growth_factor":   6.0,
+        "growth_factor":   6.0
     },
     {
         "name": "5. Dönem",
@@ -124,7 +124,7 @@ PERIODS = [
         "target_balance":  1000000.0,
         "withdraw_amount": 750000.0,
         "keep_balance":    250000.0,
-        "growth_factor":   5.0,
+        "growth_factor":   5.0
     },
     {
         "name": "6. Dönem",
@@ -136,43 +136,35 @@ PERIODS = [
         "target_balance":  1250000.0,
         "withdraw_amount": 900000.0,
         "keep_balance":    350000.0,
-        "growth_factor":   5.0,
+        "growth_factor":   5.0
     }
 ]
 
 # --- Technical Indicator Thresholds ---
-RSI_OVERSOLD = float(_get_env("RSI_OVERSOLD", "30"))    # RSI lower bound
-RSI_OVERBOUGHT = float(_get_env("RSI_OVERBOUGHT", "70"))# RSI upper bound
-ATR_MIN_VOL = float(_get_env("ATR_MIN_VOL", "50"))      # Minimum ATR to allow trades
+RSI_OVERSOLD    = float(_get_env("RSI_OVERSOLD", "30"))    # RSI lower bound
+RSI_OVERBOUGHT  = float(_get_env("RSI_OVERBOUGHT", "70"))# RSI upper bound
+ATR_MIN_VOL     = float(_get_env("ATR_MIN_VOL", "50"))   # Minimum ATR to allow trades
 
 # --- Decision Engine Tuning ---
-SCORE_BUY_THRESHOLD = float(_get_env("SCORE_BUY_THRESHOLD", "1.5"))
-TRADE_DROP_CHANCE = float(_get_env("TRADE_DROP_CHANCE", "0.02"))  # Jitter drop probability
+SCORE_BUY_THRESHOLD   = float(_get_env("SCORE_BUY_THRESHOLD", "1.5"))
+TRADE_DROP_CHANCE      = float(_get_env("TRADE_DROP_CHANCE", "0.02"))
 
 # --- Targets & Phases ---
-TARGET_USDT = float(_get_env("TARGET_USDT", "3580122"))
-PHASES = int(_get_env("PHASES", "6"))
+TARGET_USDT           = float(_get_env("TARGET_USDT", "3580122"))
+PHASES                = int(_get_env("PHASES", "6"))
 
 # --- Initial Balance ---
-INITIAL_BALANCE = float(_get_env("INITIAL_BALANCE", "231"))
+INITIAL_BALANCE       = float(_get_env("INITIAL_BALANCE", "231"))
 
 # --- Risk Management Thresholds ---
-STOP_LOSS_RATIO = float(_get_env("STOP_LOSS_RATIO", "0.05"))    # 5% stop-loss
-TAKE_PROFIT_RATIO = float(_get_env("TAKE_PROFIT_RATIO", "0.10"))  # 10% take-profit
-MAX_DRAWDOWN_PCT = float(_get_env("MAX_DRAWDOWN_PCT", "0.30"))   # 30% max drawdown
+STOP_LOSS_RATIO       = float(_get_env("STOP_LOSS_RATIO", "0.05"))
+TAKE_PROFIT_RATIO     = float(_get_env("TAKE_PROFIT_RATIO", "0.10"))
+MAX_DRAWDOWN_PCT      = float(_get_env("MAX_DRAWDOWN_PCT", "0.30"))
 
 # --- Logging & Persistence ---
-LOG_FILE = _get_env("LOG_FILE", "bot_logs.txt")
-CSV_LOG_FILE = _get_env("CSV_LOG_FILE", "trades_history.csv")
+LOG_FILE              = _get_env("LOG_FILE", "bot_logs.txt")
+CSV_LOG_FILE          = _get_env("CSV_LOG_FILE", "trades_history.csv")
 
 # --- Optional Feature Flags ---
-ENABLE_PERFORMANCE_ANALYZER = _get_env("ENABLE_PERFORMANCE_ANALYZER", "True").lower() in ("true", "1", "yes")
-ENABLE_AUTO_STRATEGY_OPTIMIZER = _get_env("ENABLE_AUTO_STRATEGY_OPTIMIZER", "True").lower() in ("true", "1", "yes")
-NOTIFIER_ENABLED = _get_env("NOTIFIER_ENABLED", "True").lower() in ("true", "1", "yes")
-ANTI_BINANCE_TESPIT_ENABLED = _get_env("ANTI_BINANCE_TESPIT_ENABLED", "True").lower() in ("true", "1", "yes")
-
-# --- Proxy Settings ---
-USE_PROXY = _get_env("USE_PROXY", "False").lower() in ("true", "1", "yes")
-PROXY_LIST_PATH = _get_env("PROXY_LIST_PATH", "proxy_list.txt")
-API_TIMEOUT = int(_get_env("API_TIMEOUT", "10"))
-PROXY_TIMEOUT = int(_get_env("PROXY_TIMEOUT", "15"))
+ENABLE_PERFORMANCE_ANALYZER      = _get_env("ENABLE_PERFORMANCE_ANALYZER", "True").lower() in ("true","1","yes")
+ENABLE_AUTO_STRATEGY_OPTIMIZER   = _get_env("ENABLE_AUTO_STRATEGY_OPTIMIZER","True").lower() in ("true","1","yes")
