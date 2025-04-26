@@ -56,11 +56,30 @@ class Strategy:
             'macd_signal_1h': macd_signal_1h,
             'atr': atr
         }
-        # External signals: normalize to float
+        # External signals: normalize to float safely
         raw_sent = analyze_sentiment(symbol)
-        self.sentiment = float(raw_sent.get('score', raw_sent) if isinstance(raw_sent, dict) else raw_sent or 0.0)
+        if isinstance(raw_sent, dict):
+            try:
+                self.sentiment = float(raw_sent.get('score', 0.0))
+            except (ValueError, TypeError):
+                self.sentiment = 0.0
+        else:
+            try:
+                self.sentiment = float(raw_sent)
+            except (ValueError, TypeError):
+                self.sentiment = 0.0
+
         raw_chain = track_onchain_activity(symbol)
-        self.onchain = float(raw_chain.get('activity', raw_chain) if isinstance(raw_chain, dict) else raw_chain or 0.0)
+        if isinstance(raw_chain, dict):
+            try:
+                self.onchain = float(raw_chain.get('activity', 0.0))
+            except (ValueError, TypeError):
+                self.onchain = 0.0
+        else:
+            try:
+                self.onchain = float(raw_chain)
+            except (ValueError, TypeError):
+                self.onchain = 0.0
 
     def _check_period(self, current_balance):
         # Advance period if target reached or time elapsed (2 months each)
