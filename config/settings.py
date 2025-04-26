@@ -18,19 +18,30 @@ def _get_env(name: str, default=None, required: bool = False) -> str:
         raise EnvironmentError(f"Required environment variable '{name}' is not set.")
     return value
 
-# --- Spot Trading Symbols ---
-SYMBOLS = [s.strip() for s in _get_env("SYMBOLS", "BTCUSDT,ETHUSDT,BNBUSDT").split(",") if s.strip()]
-
-# --- Dynamic Altcoin Selection ---
-USE_DYNAMIC_SYMBOL_SELECTION = _get_env("USE_DYNAMIC_SYMBOL_SELECTION", "False").lower() in ("true","1","yes")
-
 # --- API Credentials (required) ---
 BINANCE_API_KEY    = _get_env("BINANCE_API_KEY", required=True)
 BINANCE_API_SECRET = _get_env("BINANCE_API_SECRET", required=True)
 
-NEWS_API_KEY       = _get_env("NEWS_API_KEY", default="")
-TELEGRAM_TOKEN     = _get_env("TELEGRAM_TOKEN", default="")
-TELEGRAM_CHAT_ID   = _get_env("TELEGRAM_CHAT_ID", default="")
+# --- Dynamic Altcoin Selection Flag ---
+USE_DYNAMIC_SYMBOL_SELECTION = _get_env("USE_DYNAMIC_SYMBOL_SELECTION", "False").lower() in ("true","1","yes")
+
+# --- Spot Trading Symbols ---
+# Use dynamic selection if enabled, otherwise fallback to static SYMBOLS env var
+if USE_DYNAMIC_SYMBOL_SELECTION:
+    from binance.client import Client
+    client = Client(BINANCE_API_KEY, BINANCE_API_SECRET)
+    exchange_info = client.get_exchange_info()
+    SYMBOLS = [
+        s['symbol']
+        for s in exchange_info['symbols']
+        if s['status'] == 'TRADING' and s['symbol'].endswith('USDT')
+    ]
+else:
+    SYMBOLS = [
+        s.strip()
+        for s in _get_env("SYMBOLS", "BTCUSDT,ETHUSDT,BNBUSDT").split(",")
+        if s.strip()
+    ]
 
 # --- Trading Mode Flags (Test & Live) ---
 TESTNET_MODE  = _get_env("TESTNET_MODE", "True").lower() in ("true","1","yes")
@@ -44,11 +55,11 @@ MAX_RETRIES        = int(_get_env("MAX_RETRIES", "5"))
 RETRY_WAIT_TIME    = int(_get_env("RETRY_WAIT_TIME", "5"))
 
 # --- Stealth Mode Parameters (disabled) ---
-STEALTH_DROP_CHANCE      = 0.0
-STEALTH_SLEEP_CHANCE     = 0.0
-STEALTH_SLEEP_MIN        = 0
-STEALTH_SLEEP_MAX        = 0
-STEALTH_ORDER_SIZE_JITTER= 0.0
+STEALTH_DROP_CHANCE       = 0.0
+STEALTH_SLEEP_CHANCE      = 0.0
+STEALTH_SLEEP_MIN         = 0
+STEALTH_SLEEP_MAX         = 0
+STEALTH_ORDER_SIZE_JITTER = 0.0
 
 # --- Rate Limit Controls ---
 MAX_TRADES_PER_HOUR         = int(_get_env("MAX_TRADES_PER_HOUR", "20"))
@@ -65,12 +76,12 @@ PHASE_TARGETS = [
 
 # --- Period Definitions for Autonomous Management ---
 PERIODS = [
-    {"name":"1. Dönem","start":"2025-04-25","end":"2025-06-25","initial_balance":231.0,"target_balance":3234.0,"withdraw_amount":0.0,"keep_balance":None,"growth_factor":14.0},
-    {"name":"2. Dönem","start":"2025-06-26","end":"2025-08-26","initial_balance":None,"target_balance":38808.0,"withdraw_amount":0.0,"keep_balance":None,"growth_factor":12.0},
-    {"name":"3. Dönem","start":"2025-08-27","end":"2025-10-27","initial_balance":None,"target_balance":388080.0,"withdraw_amount":238080.0,"keep_balance":150000.0,"growth_factor":10.0},
-    {"name":"4. Dönem","start":"2025-10-28","end":"2025-12-28","initial_balance":None,"target_balance":900000.0,"withdraw_amount":700000.0,"keep_balance":200000.0,"growth_factor":6.0},
-    {"name":"5. Dönem","start":"2025-12-29","end":"2026-02-01","initial_balance":None,"target_balance":1000000.0,"withdraw_amount":750000.0,"keep_balance":250000.0,"growth_factor":5.0},
-    {"name":"6. Dönem","start":"2026-02-02","end":"2026-04-02","initial_balance":None,"target_balance":1250000.0,"withdraw_amount":900000.0,"keep_balance":350000.0,"growth_factor":5.0}
+    {"name": "1. Dönem", "start": "2025-04-25", "end": "2025-06-25", "initial_balance": 231.0, "target_balance": 3234.0, "withdraw_amount": 0.0, "keep_balance": None, "growth_factor": 14.0},
+    {"name": "2. Dönem", "start": "2025-06-26", "end": "2025-08-26", "initial_balance": None, "target_balance": 38808.0, "withdraw_amount": 0.0, "keep_balance": None, "growth_factor": 12.0},
+    {"name": "3. Dönem", "start": "2025-08-27", "end": "2025-10-27", "initial_balance": None, "target_balance": 388080.0, "withdraw_amount": 238080.0, "keep_balance": 150000.0, "growth_factor": 10.0},
+    {"name": "4. Dönem", "start": "2025-10-28", "end": "2025-12-28", "initial_balance": None, "target_balance": 900000.0, "withdraw_amount": 700000.0, "keep_balance": 200000.0, "growth_factor": 6.0},
+    {"name": "5. Dönem", "start": "2025-12-29", "end": "2026-02-01", "initial_balance": None, "target_balance": 1000000.0, "withdraw_amount": 750000.0, "keep_balance": 250000.0, "growth_factor": 5.0},
+    {"name": "6. Dönem", "start": "2026-02-02", "end": "2026-04-02", "initial_balance": None, "target_balance": 1250000.0, "withdraw_amount": 900000.0, "keep_balance": 350000.0, "growth_factor": 5.0}
 ]
 
 # --- Technical Thresholds ---
