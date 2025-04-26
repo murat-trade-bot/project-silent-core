@@ -28,7 +28,6 @@ TELEGRAM_CHAT_ID   = _get_env("TELEGRAM_CHAT_ID", default="")
 USE_DYNAMIC_SYMBOL_SELECTION = _get_env("USE_DYNAMIC_SYMBOL_SELECTION", "True").lower() in ("true","1","yes")
 
 # --- Spot Trading Symbols ---
-# Use dynamic selection if enabled, otherwise fallback to static SYMBOLS env var
 SYMBOLS = []
 if USE_DYNAMIC_SYMBOL_SELECTION:
     try:
@@ -50,14 +49,14 @@ else:
 TESTNET_MODE  = _get_env("TESTNET_MODE", "True").lower() in ("true","1","yes")
 PAPER_TRADING = _get_env("PAPER_TRADING", "True").lower() in ("true","1","yes")
 
-# --- Bot Operation Parameters (minimize for testing) ---
+# --- Bot Operation Parameters ---
 CYCLE_INTERVAL     = int(_get_env("CYCLE_INTERVAL", "1"))
 CYCLE_JITTER_MIN   = int(_get_env("CYCLE_JITTER_MIN", "0"))
 CYCLE_JITTER_MAX   = int(_get_env("CYCLE_JITTER_MAX", "0"))
 MAX_RETRIES        = int(_get_env("MAX_RETRIES", "5"))
 RETRY_WAIT_TIME    = int(_get_env("RETRY_WAIT_TIME", "5"))
 
-# --- Stealth Mode Parameters (disabled) ---
+# --- Stealth Mode Parameters ---
 STEALTH_DROP_CHANCE       = 0.0
 STEALTH_SLEEP_CHANCE      = 0.0
 STEALTH_SLEEP_MIN         = 0
@@ -79,12 +78,78 @@ PHASE_TARGETS = [
 
 # --- Period Definitions for Autonomous Management ---
 PERIODS = [
-    {"name": "1. Dönem", "start": "2025-04-25", "end": "2025-06-25", "initial_balance": 231.0, "target_balance": 3234.0, "withdraw_amount": 0.0, "keep_balance": None, "growth_factor": 14.0},
-    {"name": "2. Dönem", "start": "2025-06-26", "end": "2025-08-26", "initial_balance": None, "target_balance": 38808.0, "withdraw_amount": 0.0, "keep_balance": None, "growth_factor": 12.0},
-    {"name": "3. Dönem", "start": "2025-08-27", "end": "2025-10-27", "initial_balance": None, "target_balance": 388080.0, "withdraw_amount": 238080.0, "keep_balance": 150000.0, "growth_factor": 10.0},
-    {"name": "4. Dönem", "start": "2025-10-28", "end": "2025-12-28", "initial_balance": None, "target_balance": 900000.0, "withdraw_amount": 700000.0, "keep_balance": 200000.0, "growth_factor": 6.0},
-    {"name": "5. Dönem", "start": "2025-12-29", "end": "2026-02-01", "initial_balance": None, "target_balance": 1000000.0, "withdraw_amount": 750000.0, "keep_balance": 250000.0, "growth_factor": 5.0},
-    {"name": "6. Dönem", "start": "2026-02-02", "end": "2026-04-02", "initial_balance": None, "target_balance": 1250000.0, "withdraw_amount": 900000.0, "keep_balance": 350000.0, "growth_factor": 5.0}
+    {
+        "name": "1. Dönem",
+        "start": "2025-04-25",
+        "end":   "2025-06-25",
+        "initial_balance": 231.0,
+        "target_balance":  3234.0,
+        "withdraw_amount": 0.0,
+        "keep_balance":    None,
+        "growth_factor":   14.0,
+        "take_profit_ratio": 0.10,
+        "stop_loss_ratio":   0.05
+    },
+    {
+        "name": "2. Dönem",
+        "start": "2025-06-26",
+        "end":   "2025-08-26",
+        "initial_balance": None,
+        "target_balance":  38808.0,
+        "withdraw_amount": 0.0,
+        "keep_balance":    None,
+        "growth_factor":   12.0,
+        "take_profit_ratio": 0.10,
+        "stop_loss_ratio":   0.05
+    },
+    {
+        "name": "3. Dönem",
+        "start": "2025-08-27",
+        "end":   "2025-10-27",
+        "initial_balance": None,
+        "target_balance":  388080.0,
+        "withdraw_amount": 238080.0,
+        "keep_balance":    150000.0,
+        "growth_factor":   10.0,
+        "take_profit_ratio": 0.10,
+        "stop_loss_ratio":   0.05
+    },
+    {
+        "name": "4. Dönem",
+        "start": "2025-10-28",
+        "end":   "2025-12-28",
+        "initial_balance": None,
+        "target_balance":  900000.0,
+        "withdraw_amount": 700000.0,
+        "keep_balance":    200000.0,
+        "growth_factor":   6.0,
+        "take_profit_ratio": 0.10,
+        "stop_loss_ratio":   0.05
+    },
+    {
+        "name": "5. Dönem",
+        "start": "2025-12-29",
+        "end":   "2026-02-01",
+        "initial_balance": None,
+        "target_balance":  1000000.0,
+        "withdraw_amount": 750000.0,
+        "keep_balance":    250000.0,
+        "growth_factor":   5.0,
+        "take_profit_ratio": 0.10,
+        "stop_loss_ratio":   0.05
+    },
+    {
+        "name": "6. Dönem",
+        "start": "2026-02-02",
+        "end":   "2026-04-02",
+        "initial_balance": None,
+        "target_balance":  1250000.0,
+        "withdraw_amount": 900000.0,
+        "keep_balance":    350000.0,
+        "growth_factor":   5.0,
+        "take_profit_ratio": 0.10,
+        "stop_loss_ratio":   0.05
+    }
 ]
 
 # --- Technical Thresholds ---
@@ -113,7 +178,6 @@ LOG_FILE     = _get_env("LOG_FILE", "bot_logs.txt")
 CSV_LOG_FILE = _get_env("CSV_LOG_FILE", "trades_history.csv")
 
 # --- Optional Features ---
-ENABLE_PERFORMANCE_ANALYZER    = _get_env("ENABLE_PERFORMANCE_ANALYZER", "True").lower() in ("true","1","yes")
 ENABLE_AUTO_STRATEGY_OPTIMIZER = _get_env("ENABLE_AUTO_STRATEGY_OPTIMIZER", "True").lower() in ("true","1","yes")
 NOTIFIER_ENABLED               = _get_env("NOTIFIER_ENABLED", "True").lower() in ("true","1","yes")
 ANTIBINANCE_TESPIT_ENABLED     = _get_env("ANTIBINANCE_TESPIT_ENABLED", "True").lower() in ("true","1","yes")
