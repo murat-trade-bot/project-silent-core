@@ -24,6 +24,10 @@ NEWS_API_KEY       = _get_env("NEWS_API_KEY", default="")
 TELEGRAM_TOKEN     = _get_env("TELEGRAM_TOKEN", default="")
 TELEGRAM_CHAT_ID   = _get_env("TELEGRAM_CHAT_ID", default="")
 
+# --- Global Target ---
+# Orijinal hedef sermaye (global) .env üzerinden yüklenir ve güncellenmez.
+GLOBAL_TARGET_USDT = float(_get_env("TARGET_USDT", "3580122"))
+
 # --- Dynamic Altcoin Selection Flag ---
 USE_DYNAMIC_SYMBOL_SELECTION = _get_env("USE_DYNAMIC_SYMBOL_SELECTION", "True").lower() in ("true","1","yes")
 
@@ -56,7 +60,7 @@ CYCLE_JITTER_MAX   = int(_get_env("CYCLE_JITTER_MAX", "0"))
 MAX_RETRIES        = int(_get_env("MAX_RETRIES", "5"))
 RETRY_WAIT_TIME    = int(_get_env("RETRY_WAIT_TIME", "5"))
 
-# --- Stealth Mode Parameters ---
+# --- Stealth Mode Parameters (disabled) ---
 STEALTH_DROP_CHANCE       = 0.0
 STEALTH_SLEEP_CHANCE      = 0.0
 STEALTH_SLEEP_MIN         = 0
@@ -161,17 +165,12 @@ ATR_MIN_VOL    = float(_get_env("ATR_MIN_VOL", "50"))
 SCORE_BUY_THRESHOLD = float(_get_env("SCORE_BUY_THRESHOLD", "1.5"))
 TRADE_DROP_CHANCE   = float(_get_env("TRADE_DROP_CHANCE", "0.02"))
 
-# --- General Targets ---
-TARGET_USDT = float(_get_env("TARGET_USDT", "3580122"))
-PHASES      = int(_get_env("PHASES", "6"))
+# --- Period-based Targets ---
+# Periyodik hedef, update_settings_for_period() ile güncelleniyor
+PERIOD_TARGET_USDT = None
 
 # --- Initial Balance ---
 INITIAL_BALANCE = float(_get_env("INITIAL_BALANCE", "231"))
-
-# --- Risk Management ---
-STOP_LOSS_RATIO   = float(_get_env("STOP_LOSS_RATIO", "0.05"))
-TAKE_PROFIT_RATIO = float(_get_env("TAKE_PROFIT_RATIO", "0.10"))
-MAX_DRAWDOWN_PCT  = float(_get_env("MAX_DRAWDOWN_PCT", "0.30"))
 
 # --- Logging & Persistence ---
 LOG_FILE     = _get_env("LOG_FILE", "bot_logs.txt")
