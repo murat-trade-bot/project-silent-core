@@ -22,6 +22,11 @@ def _get_env(name: str, default=None, required: bool = False) -> str:
 BINANCE_API_KEY    = _get_env("BINANCE_API_KEY", required=True)
 BINANCE_API_SECRET = _get_env("BINANCE_API_SECRET", required=True)
 
+# --- News & Notification API Keys ---
+NEWS_API_KEY       = _get_env("NEWS_API_KEY", default="")
+TELEGRAM_TOKEN     = _get_env("TELEGRAM_TOKEN", default="")
+TELEGRAM_CHAT_ID   = _get_env("TELEGRAM_CHAT_ID", default="")
+
 # --- Dynamic Altcoin Selection Flag ---
 USE_DYNAMIC_SYMBOL_SELECTION = _get_env("USE_DYNAMIC_SYMBOL_SELECTION", "False").lower() in ("true","1","yes")
 
