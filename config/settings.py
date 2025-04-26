@@ -10,9 +10,6 @@ load_dotenv()
 
 
 def _get_env(name: str, default=None, required: bool = False) -> str:
-    """
-    Helper to fetch environment variable, with optional default and requirement enforcement.
-    """
     value = os.getenv(name, default)
     if required and not value:
         raise EnvironmentError(f"Required environment variable '{name}' is not set.")
@@ -32,21 +29,22 @@ USE_DYNAMIC_SYMBOL_SELECTION = _get_env("USE_DYNAMIC_SYMBOL_SELECTION", "True").
 
 # --- Spot Trading Symbols ---
 # Use dynamic selection if enabled, otherwise fallback to static SYMBOLS env var
+SYMBOLS = []
 if USE_DYNAMIC_SYMBOL_SELECTION:
-    from binance.client import Client
-    client = Client(BINANCE_API_KEY, BINANCE_API_SECRET)
-    exchange_info = client.get_exchange_info()
-    SYMBOLS = [
-        s['symbol']
-        for s in exchange_info['symbols']
-        if s['status'] == 'TRADING' and s['symbol'].endswith('USDT')
-    ]
+    try:
+        from binance.client import Client
+        client = Client(BINANCE_API_KEY, BINANCE_API_SECRET)
+        exchange_info = client.get_exchange_info()
+        SYMBOLS = [
+            s['symbol']
+            for s in exchange_info['symbols']
+            if s['status'] == 'TRADING' and s['symbol'].endswith('USDT')
+        ]
+    except Exception as e:
+        print(f"Dynamic symbol selection failed: {e}")
+        SYMBOLS = [s.strip() for s in _get_env("SYMBOLS", "BTCUSDT,ETHUSDT,BNBUSDT").split(",") if s.strip()]
 else:
-    SYMBOLS = [
-        s.strip()
-        for s in _get_env("SYMBOLS", "BTCUSDT,ETHUSDT,BNBUSDT").split(",")
-        if s.strip()
-    ]
+    SYMBOLS = [s.strip() for s in _get_env("SYMBOLS", "BTCUSDT,ETHUSDT,BNBUSDT").split(",") if s.strip()]
 
 # --- Trading Mode Flags (Test & Live) ---
 TESTNET_MODE  = _get_env("TESTNET_MODE", "True").lower() in ("true","1","yes")
