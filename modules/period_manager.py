@@ -13,7 +13,7 @@ def get_current_period():
     today = datetime.utcnow().date()
     for period in settings.PERIODS:
         start = datetime.fromisoformat(period["start"]).date()
-        end = datetime.fromisoformat(period["end"]).date()
+        end   = datetime.fromisoformat(period["end"]).date()
         if start <= today <= end:
             return period
     return None
