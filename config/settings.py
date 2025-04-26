@@ -64,6 +64,82 @@ PHASE_TARGETS = [
     1250000.0  # 2 Feb - 2 Apr
 ]
 
+# --- Period Definitions for Autonomous Management ---
+PERIODS = [
+    {
+        "name": "1. Dönem",
+        "start": "2025-04-25",
+        "end":   "2025-06-25",
+        "initial_balance": 231.0,
+        "initial_xrp":     9.0,
+        "initial_bnb":     0.0209,
+        "target_balance":  3234.0,
+        "withdraw_amount": 0.0,
+        "keep_balance":    None,
+        "growth_factor":   14.0,
+    },
+    {
+        "name": "2. Dönem",
+        "start": "2025-06-26",
+        "end":   "2025-08-26",
+        "initial_balance": None,
+        "initial_xrp":     0.0,
+        "initial_bnb":     0.0,
+        "target_balance":  38808.0,
+        "withdraw_amount": 0.0,
+        "keep_balance":    None,
+        "growth_factor":   12.0,
+    },
+    {
+        "name": "3. Dönem",
+        "start": "2025-08-27",
+        "end":   "2025-10-27",
+        "initial_balance": None,
+        "initial_xrp":     0.0,
+        "initial_bnb":     0.0,
+        "target_balance":  388080.0,
+        "withdraw_amount": 238080.0,
+        "keep_balance":    150000.0,
+        "growth_factor":   10.0,
+    },
+    {
+        "name": "4. Dönem",
+        "start": "2025-10-28",
+        "end":   "2025-12-28",
+        "initial_balance": None,
+        "initial_xrp":     0.0,
+        "initial_bnb":     0.0,
+        "target_balance":  900000.0,
+        "withdraw_amount": 700000.0,
+        "keep_balance":    200000.0,
+        "growth_factor":   6.0,
+    },
+    {
+        "name": "5. Dönem",
+        "start": "2025-12-29",
+        "end":   "2026-02-01",
+        "initial_balance": None,
+        "initial_xrp":     0.0,
+        "initial_bnb":     0.0,
+        "target_balance":  1000000.0,
+        "withdraw_amount": 750000.0,
+        "keep_balance":    250000.0,
+        "growth_factor":   5.0,
+    },
+    {
+        "name": "6. Dönem",
+        "start": "2026-02-02",
+        "end":   "2026-04-02",
+        "initial_balance": None,
+        "initial_xrp":     0.0,
+        "initial_bnb":     0.0,
+        "target_balance":  1250000.0,
+        "withdraw_amount": 900000.0,
+        "keep_balance":    350000.0,
+        "growth_factor":   5.0,
+    }
+]
+
 # --- Technical Indicator Thresholds ---
 RSI_OVERSOLD = float(_get_env("RSI_OVERSOLD", "30"))    # RSI lower bound
 RSI_OVERBOUGHT = float(_get_env("RSI_OVERBOUGHT", "70"))# RSI upper bound
