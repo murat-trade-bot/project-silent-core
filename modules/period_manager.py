@@ -29,6 +29,9 @@ def update_settings_for_period():
     if not period:
         raise RuntimeError("No active trading period found for today's date.")
 
+    # Debug output: which period is active and its target
+    print(f"[PERIOD-DEBUG] Aktif dönem: {period['name']} → hedef {period['target_balance']:.2f} USDT")
+
     idx = settings.PERIODS.index(period)
     # Handle initial balance: if None, use previous period's target
     if period.get("initial_balance") is None and idx > 0:
