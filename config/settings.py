@@ -27,26 +27,16 @@ NEWS_API_KEY       = _get_env("NEWS_API_KEY", default="")
 TELEGRAM_TOKEN     = _get_env("TELEGRAM_TOKEN", default="")
 TELEGRAM_CHAT_ID   = _get_env("TELEGRAM_CHAT_ID", default="")
 
-# --- Dynamic Altcoin Selection Flag ---
-USE_DYNAMIC_SYMBOL_SELECTION = _get_env("USE_DYNAMIC_SYMBOL_SELECTION", "False").lower() in ("true","1","yes")
-
-# --- Spot Trading Symbols ---
-# Use dynamic selection if enabled, otherwise fallback to static SYMBOLS env var
-if USE_DYNAMIC_SYMBOL_SELECTION:
-    from binance.client import Client
-    client = Client(BINANCE_API_KEY, BINANCE_API_SECRET)
-    exchange_info = client.get_exchange_info()
-    SYMBOLS = [
-        s['symbol']
-        for s in exchange_info['symbols']
-        if s['status'] == 'TRADING' and s['symbol'].endswith('USDT')
-    ]
-else:
-    SYMBOLS = [
-        s.strip()
-        for s in _get_env("SYMBOLS", "BTCUSDT,ETHUSDT,BNBUSDT").split(",")
-        if s.strip()
-    ]
+# --- Dynamic Altcoin Selection (USDT Pairs) ---
+# Always fetch all USDT trading pairs from Binance
+from binance.client import Client
+client = Client(BINANCE_API_KEY, BINANCE_API_SECRET)
+exchange_info = client.get_exchange_info()
+SYMBOLS = [
+    s['symbol']
+    for s in exchange_info['symbols']
+    if s['status'] == 'TRADING' and s['symbol'].endswith('USDT')
+]
 
 # --- Trading Mode Flags (Test & Live) ---
 TESTNET_MODE  = _get_env("TESTNET_MODE", "True").lower() in ("true","1","yes")
