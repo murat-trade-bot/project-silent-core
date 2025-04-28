@@ -165,6 +165,12 @@ ATR_MIN_VOL    = float(_get_env("ATR_MIN_VOL", "50"))
 SCORE_BUY_THRESHOLD = float(_get_env("SCORE_BUY_THRESHOLD", "1.5"))
 TRADE_DROP_CHANCE   = float(_get_env("TRADE_DROP_CHANCE", "0.02"))
 
+# --- Risk & Trade Parameters ---
+STOP_LOSS_RATIO     = float(_get_env("STOP_LOSS_RATIO", "0.05"))
+TAKE_PROFIT_RATIO   = float(_get_env("TAKE_PROFIT_RATIO", "0.10"))
+MAX_DRAWDOWN_PCT    = float(_get_env("MAX_DRAWDOWN_PCT", "0.20"))
+TRADE_USDT_AMOUNT   = float(_get_env("TRADE_USDT_AMOUNT", "20"))
+
 # --- Period-based Targets ---
 # Periyodik hedef, update_settings_for_period() ile güncelleniyor
 PERIOD_TARGET_USDT = None
