@@ -81,12 +81,28 @@ def run_bot_cycle(symbol):
     try:
         # (1) Stealth
         stealth.maybe_enter_sleep()
+
         # (2) Zaman stratejisi
         current_mode = get_current_strategy_mode()
+
         # (3) Küresel risk analizi
         risk_level = GlobalRiskAnalyzer().evaluate_risk_level()
+
         # (4) Liquidity pressure (opsiyonel)
         pressure = 'neutral'
+
+        # --- Teknik Analiz Verileri ---
+        ohlcv_15m = fetch_ohlcv_from_binance(symbol, "15m", limit=50)
+        prices_15m = [c[4] for c in ohlcv_15m]
+        rsi_15m = calculate_rsi(prices_15m)[-1] if prices_15m else None
+        macd_15m, macd_signal_15m = calculate_macd(prices_15m)
+        atr = calculate_atr(ohlcv_15m)
+
+        ohlcv_1h = fetch_ohlcv_from_binance(symbol, "1h", limit=50)
+        prices_1h = [c[4] for c in ohlcv_1h]
+        rsi_1h = calculate_rsi(prices_1h)[-1] if prices_1h else None
+        macd_1h, macd_signal_1h = calculate_macd(prices_1h)
+
         # --- Bakiye ve PnL hesaplama ---
         current_balance = executor.get_balance('USDT')
         current_pnl     = current_balance - start_balance
@@ -98,19 +114,24 @@ def run_bot_cycle(symbol):
             mode=current_mode,
             risk=risk_level,
             pressure=pressure,
-            rsi_15m=None, macd_15m=None, macd_signal_15m=None,
-            rsi_1h=None, macd_1h=None, macd_signal_1h=None,
-            atr=None
+            # teknik analiz sinyalleri
+            rsi_15m=rsi_15m,
+            macd_15m=macd_15m[-1] if macd_15m else None,
+            macd_signal_15m=macd_signal_15m[-1] if macd_signal_15m else None,
+            rsi_1h=rsi_1h,
+            macd_1h=macd_1h[-1] if macd_1h else None,
+            macd_signal_1h=macd_signal_1h[-1] if macd_signal_1h else None,
+            atr=atr
         )
         decision = strategy.decide_trade(current_balance, current_pnl)
         action   = decision.get("action")
 
-        # Stealth drop
+        # (5) Stealth drop
         if stealth.maybe_drop_trade():
             logger.log(f"[STEALTH] {symbol} işlemi iptal edildi.", level="WARNING")
             return None
 
-        # Emir yürütme
+        # (6) Emir yürütme
         trade_result = executor.manage_position(symbol, action)
         return {
             'symbol':    symbol,
