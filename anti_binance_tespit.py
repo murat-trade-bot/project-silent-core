@@ -21,7 +21,7 @@ class AntiDetectionSystem:
         self.proxy_list = []
         self.current_proxy_index = 0
 
-        # Load proxies if enabled
+        # Sadece proxy aktifse yüklemeyi dene
         if settings.USE_PROXY:
             self.load_proxies()
 
