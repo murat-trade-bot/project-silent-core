@@ -39,11 +39,12 @@ class AntiDetectionSystem:
                     self.proxy_list = [line.strip() for line in response.text.split('\n') if line.strip()]
                     logger.log(f"[ANTI] {len(self.proxy_list)} proxy yüklendi (online)")
         except Exception as e:
-            logger.log(f"[ANTI] Proxy yükleme hatası: {e}")
+            logger.log(f"[ANTI] Proxy yükleme hatası: {e}", level="ERROR")
 
     def get_next_proxy(self):
-        """Bir sonraki proxy'yi döndürür"""
+        """Bir sonraki proxy'yi döndürür, yoksa uyarı verir"""
         if not settings.USE_PROXY or not self.proxy_list:
+            logger.log("[ANTI] Proxy listesi boş veya kullanım dışı.", level="WARNING")
             return None
         proxy = self.proxy_list[self.current_proxy_index]
         self.current_proxy_index = (self.current_proxy_index + 1) % len(self.proxy_list)
@@ -60,7 +61,7 @@ class AntiDetectionSystem:
             self.request_count += 1
             if self.request_count >= self.max_requests_per_minute:
                 sleep_time = 60 - (current_time - self.last_request_time)
-                logger.log(f"[ANTI] Rate limit aşıldı, {sleep_time:.2f} saniye bekleniyor")
+                logger.log(f"[ANTI] Rate limit aşıldı, {sleep_time:.2f} saniye bekleniyor", level="WARNING")
                 time.sleep(sleep_time)
                 self.request_count = 0
                 self.last_request_time = time.time()
@@ -83,7 +84,7 @@ class AntiDetectionSystem:
 
     def should_drop_request(self):
         """Bazı istekleri rastgele düşürür"""
-        return random.random() < settings.STEALTH_DROP_CHANCE if hasattr(settings, 'STEALTH_DROP_CHANCE') else False
+        return random.random() < settings.STEALTH_DROP_CHANCE
 
 # Global instance
 anti_detection = AntiDetectionSystem()
