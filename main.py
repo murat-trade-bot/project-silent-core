@@ -104,6 +104,12 @@ def run_bot_cycle(symbol):
         rsi_1h = calculate_rsi(prices_1h)[-1] if prices_1h else None
         macd_1h, macd_signal_1h = calculate_macd(prices_1h)
 
+        # Diziler boş mu diye len ile kontrol edelim
+        macd_15m_last       = macd_15m[-1]       if len(macd_15m)       > 0 else None
+        macd_signal_15m_last= macd_signal_15m[-1] if len(macd_signal_15m)> 0 else None
+        macd_1h_last        = macd_1h[-1]        if len(macd_1h)        > 0 else None
+        macd_signal_1h_last = macd_signal_1h[-1] if len(macd_signal_1h)> 0 else None
+
         # --- Bakiye ve PnL hesaplama ---
         current_balance = executor.get_balance('USDT')
         current_pnl     = current_balance - start_balance
@@ -115,13 +121,12 @@ def run_bot_cycle(symbol):
             mode=current_mode,
             risk=risk_level,
             pressure=pressure,
-            # teknik analiz sinyalleri
             rsi_15m=rsi_15m,
-            macd_15m=macd_15m[-1] if macd_15m else None,
-            macd_signal_15m=macd_signal_15m[-1] if macd_signal_15m else None,
+            macd_15m=macd_15m_last,
+            macd_signal_15m=macd_signal_15m_last,
             rsi_1h=rsi_1h,
-            macd_1h=macd_1h[-1] if macd_1h else None,
-            macd_signal_1h=macd_signal_1h[-1] if macd_signal_1h else None,
+            macd_1h=macd_1h_last,
+            macd_signal_1h=macd_signal_1h_last,
             atr=atr
         )
         decision = strategy.decide_trade(current_balance, current_pnl)
