@@ -169,6 +169,9 @@ def print_metrics():
 
 
 if __name__ == "__main__":
+    # → Performans izlemeyi başlat
+    optimize_performance_infrastructure()
+
     retry_count    = 0
     last_heartbeat = START_TIME
 
