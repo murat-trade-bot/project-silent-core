@@ -30,8 +30,12 @@ class StealthMode:
             # time.sleep(d)
 
     def apply_order_size_jitter(self, original_size: float):
-        delta = original_size * self.size_jitter
-        new_size = random.uniform(original_size - delta, original_size + delta)
+        """
+        Emir boyutuna jitter ekler:
+        jitter_percent, -size_jitter ile +size_jitter arasında random seçilir.
+        """
+        jitter_percent = random.uniform(-self.size_jitter, self.size_jitter)
+        new_size = original_size * (1 + jitter_percent)
         return round(new_size, 8)
 
     def dynamic_optimize(self, current_load):
