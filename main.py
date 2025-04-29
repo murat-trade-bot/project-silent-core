@@ -24,6 +24,7 @@ from modules.domino_effect import detect_domino_effect
 from modules.multi_asset_selector import select_coins
 from modules.performance_optimization import optimize_performance_infrastructure
 from modules.period_manager import update_settings_for_period, perform_period_withdrawal
+from notifier import send_notification  # ← Telegram bildirimini ekledik
 
 logger = BotLogger()
 executor = ExecutorManager()
@@ -194,6 +195,15 @@ if __name__ == "__main__":
                 print(f"{result['timestamp']} - {result['symbol']} "
                       f"{result['action']} {result['quantity']} @ {result['price']} → "
                       f"PnL: {result['pnl']:+.2f} USDT")
+
+                # ► Telegram bildirimi
+                if settings.NOTIFIER_ENABLED:
+                    message = (
+                        f"İşlem: {result['action']} {result['symbol']} "
+                        f"@ {result['price']:.2f} USD, PnL: {result['pnl']:+.2f} USDT"
+                    )
+                    send_notification(message)
+
                 log_trade_csv(result)
                 print_metrics()
 
