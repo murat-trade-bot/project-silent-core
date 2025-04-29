@@ -1,5 +1,4 @@
 import time
-from datetime import datetime
 from binance.client import Client
 from config import settings
 from core.paper_trade_executor import PaperTradeExecutor
@@ -9,102 +8,111 @@ from core.logger import BotLogger
 logger = BotLogger()
 
 class ExecutorManager:
-    """
-    Manages order execution for both live and paper trading.
-    Provides unified interface for balance inquiry and order execution.
-    """
     def __init__(self):
         if settings.PAPER_TRADING:
-            # Initialize paper trading executor with initial balance
             self.executor = PaperTradeExecutor(initial_balance=settings.INITIAL_BALANCE)
             self.client = None
         else:
-            # Initialize Binance client for live or testnet
             self.client = Client(
                 settings.BINANCE_API_KEY,
                 settings.BINANCE_API_SECRET,
                 testnet=settings.TESTNET_MODE
             )
             if settings.TESTNET_MODE:
-                # Use testnet endpoint
                 self.client.API_URL = 'https://testnet.binance.vision/api'
             self.executor = None
 
     def get_balance(self, asset: str) -> float:
-        """
-        Returns free balance for a given asset (e.g., 'USDT' or 'BTC').
-        """
         if settings.PAPER_TRADING:
             return self.executor.get_balance(asset)
-        balance_info = self.client.get_asset_balance(asset=asset)
-        return float(balance_info.get('free', 0.0))
+        try:
+            balance_info = self.client.get_asset_balance(asset=asset)
+            return float(balance_info.get('free', 0.0))
+        except Exception as e:
+            logger.error(f"Get balance error: {e}")
+            return 0.0
 
     def manage_position(self, symbol: str, action: str) -> dict:
-        """
-        Executes or simulates a market order. Returns a result dict containing:
-        'action', 'quantity', 'price', 'pnl'.
-        """
-        # Paper trading path
         if settings.PAPER_TRADING:
             return self.executor.manage_position(symbol, action)
 
-        # Live trading path
+        base_asset = symbol.replace('USDT', '')
+
+        try:
+            current_price = float(self.client.get_symbol_ticker(symbol=symbol)['price'])
+        except Exception as e:
+            logger.error(f"Price fetch error: {e}")
+            return {'action': 'ERROR', 'quantity': 0.0, 'price': 0.0, 'pnl': 0.0}
+
         if action.upper() == 'BUY':
-            # Determine USD quantity for buy
+            usdt_balance = self.get_balance('USDT')
+            trade_amount = usdt_balance * settings.POSITION_SIZE_PCT
+            trade_amount = max(trade_amount, 10)
+
             try:
-                qty_usdt = settings.TRADE_USDT_AMOUNT
-            except AttributeError:
-                raise ValueError("TRADE_USDT_AMOUNT must be set in settings for live buy orders.")
-            # Place market buy order
-            order = self.client.create_order(
-                symbol=symbol,
-                side='BUY',
-                type='MARKET',
-                quoteOrderQty=qty_usdt
-            )
-            # Parse fills for execution price
-            fills = order.get('fills', [])
-            executed_qty = float(order.get('executedQty', 0.0))
-            fill_price = (float(fills[0]['price']) if fills else
-                          (float(order.get('cummulativeQuoteQty', 0.0)) / executed_qty if executed_qty else 0.0))
-            logger.log(f"[BINANCE] BUY executed: {executed_qty} @ {fill_price:.2f}")
-            # Risk management: SL/TP via OCO
-            rm = RiskManager(entry_price=fill_price, quantity=executed_qty)
-            oco_params = rm.create_oco_params()
-            try:
-                oco_order = self.client.create_oco_order(
+                order = self.client.create_order(
                     symbol=symbol,
-                    side='SELL',
-                    quantity=executed_qty,
-                    price=oco_params['price'],
-                    stopPrice=oco_params['stopPrice'],
-                    stopLimitPrice=oco_params['stopLimitPrice'],
-                    stopLimitTimeInForce='GTC'
+                    side='BUY',
+                    type='MARKET',
+                    quoteOrderQty=trade_amount
                 )
-                logger.log(f"[BINANCE] OCO SELL set => {oco_order}")
+                executed_qty = float(order['executedQty'])
+                avg_fill_price = float(order['cummulativeQuoteQty']) / executed_qty
+                logger.info(f"BUY {symbol}: {executed_qty} @ {avg_fill_price}")
+
+                rm = RiskManager(entry_price=avg_fill_price, quantity=executed_qty)
+                oco_params = rm.create_oco_params()
+
+                try:
+                    self.client.create_oco_order(
+                        symbol=symbol,
+                        side='SELL',
+                        quantity=executed_qty,
+                        price=oco_params['price'],
+                        stopPrice=oco_params['stopPrice'],
+                        stopLimitPrice=oco_params['stopLimitPrice'],
+                        stopLimitTimeInForce='GTC'
+                    )
+                    logger.info(f"OCO SELL set: TP={oco_params['price']} SL={oco_params['stopPrice']}")
+                except Exception as e:
+                    logger.error(f"OCO error: {e}")
+                    self.client.create_order(
+                        symbol=symbol,
+                        side='SELL',
+                        type='MARKET',
+                        quantity=executed_qty
+                    )
+                    logger.warning("Pozisyon hemen kapatıldı (OCO başarısız).")
+
+                return {'action': 'BUY', 'quantity': executed_qty, 'price': avg_fill_price, 'pnl': 0.0}
+
             except Exception as e:
-                logger.log(f"[BINANCE] OCO SELL error: {e}", level="ERROR")
-            # Return result
-            return {'action': 'BUY', 'quantity': executed_qty, 'price': fill_price, 'pnl': 0.0}
+                logger.error(f"BUY error: {e}")
+                return {'action': 'ERROR', 'quantity': 0.0, 'price': 0.0, 'pnl': 0.0}
 
         elif action.upper() == 'SELL':
-            # Sell full position
-            base_asset = symbol.replace('USDT', '')
-            asset_balance = self.client.get_asset_balance(asset=base_asset)
-            sell_qty = float(asset_balance.get('free', 0.0))
-            order = self.client.create_order(
-                symbol=symbol,
-                side='SELL',
-                type='MARKET',
-                quantity=sell_qty
-            )
-            executed_qty = float(order.get('executedQty', 0.0))
-            fill_price = (float(order.get('cummulativeQuoteQty', 0.0)) / executed_qty) if executed_qty else 0.0
-            logger.log(f"[BINANCE] SELL executed: {executed_qty} @ {fill_price:.2f}")
-            # Return result
-            return {'action': 'SELL', 'quantity': executed_qty, 'price': fill_price, 'pnl': 0.0}
+            asset_balance = self.get_balance(base_asset)
+            if asset_balance <= 0:
+                logger.warning(f"{base_asset} bakiyesi yetersiz.")
+                return {'action': 'HOLD', 'quantity': 0.0, 'price': 0.0, 'pnl': 0.0}
+
+            try:
+                order = self.client.create_order(
+                    symbol=symbol,
+                    side='SELL',
+                    type='MARKET',
+                    quantity=asset_balance
+                )
+                executed_qty = float(order['executedQty'])
+                avg_fill_price = float(order['cummulativeQuoteQty']) / executed_qty
+                logger.info(f"SELL {symbol}: {executed_qty} @ {avg_fill_price}")
+
+                return {'action': 'SELL', 'quantity': executed_qty, 'price': avg_fill_price, 'pnl': 0.0}
+
+            except Exception as e:
+                logger.error(f"SELL error: {e}")
+                return {'action': 'ERROR', 'quantity': 0.0, 'price': 0.0, 'pnl': 0.0}
 
         else:
-            # No operation
-            logger.log(f"[EXECUTOR] No action for {action}")
-            return {'action': action, 'quantity': 0.0, 'price': 0.0, 'pnl': 0.0}
+            logger.info(f"No action performed for {symbol}")
+            return {'action': 'HOLD', 'quantity': 0.0, 'price': current_price, 'pnl': 0.0}
