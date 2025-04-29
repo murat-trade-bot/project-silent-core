@@ -12,14 +12,16 @@ class AntiDetectionSystem:
         self.request_count = 0
         self.max_requests_per_minute = 1200  # Binance rate limit
         self.user_agents = [
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Safari/605.1.15",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+            "(KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 "
+            "(KHTML, like Gecko) Version/14.1.1 Safari/605.1.15",
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:89.0) Gecko/20100101 Firefox/89.0"
         ]
         self.proxy_list = []
         self.current_proxy_index = 0
 
-        # Sadece proxy aktifse yüklemeyi dene
+        # Load proxies if enabled
         if settings.USE_PROXY:
             self.load_proxies()
 
@@ -32,11 +34,14 @@ class AntiDetectionSystem:
                     logger.log(f"[ANTI] {len(self.proxy_list)} proxy yüklendi (dosyadan)")
             else:
                 response = requests.get(
-                    "https://api.proxyscrape.com/v2/?request=getproxies&protocol=http&timeout=10000&country=all&ssl=all&anonymity=all",
+                    "https://api.proxyscrape.com/v2/?request=getproxies&protocol=http"
+                    "&timeout=10000&country=all&ssl=all&anonymity=all",
                     timeout=settings.PROXY_TIMEOUT
                 )
                 if response.status_code == 200:
-                    self.proxy_list = [line.strip() for line in response.text.split('\n') if line.strip()]
+                    self.proxy_list = [
+                        line.strip() for line in response.text.split('\n') if line.strip()
+                    ]
                     logger.log(f"[ANTI] {len(self.proxy_list)} proxy yüklendi (online)")
         except Exception as e:
             logger.log(f"[ANTI] Proxy yükleme hatası: {e}", level="ERROR")
