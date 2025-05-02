@@ -43,8 +43,8 @@ trade_durations = []
 peak_balance = start_balance
 max_drawdown = 0.0
 
-# Başlangıç bilgisi
-dördüm = update_settings_for_period()
+# Başlangıçta bir kez dönemi yükleyelim
+_ = update_settings_for_period()
 print(f"Bot Başlatıldı:      {datetime.utcnow()} UTC")
 print(f"Başlangıç Sermayesi: {start_balance:.2f} USDT")
 print(f"Hedef Sermaye:       {settings.TARGET_USDT:.2f} USDT")
@@ -105,16 +105,22 @@ def run_bot_cycle(symbol):
         macd_1h, macd_signal_1h = calculate_macd(prices_1h)
 
         # Diziler boş mu diye len ile kontrol edelim
-        macd_15m_last       = macd_15m[-1]       if len(macd_15m)       > 0 else None
-        macd_signal_15m_last= macd_signal_15m[-1] if len(macd_signal_15m)> 0 else None
-        macd_1h_last        = macd_1h[-1]        if len(macd_1h)        > 0 else None
-        macd_signal_1h_last = macd_signal_1h[-1] if len(macd_signal_1h)> 0 else None
+        macd_15m_last        = macd_15m[-1]        if len(macd_15m)        > 0 else None
+        macd_signal_15m_last = macd_signal_15m[-1] if len(macd_signal_15m) > 0 else None
+        macd_1h_last         = macd_1h[-1]         if len(macd_1h)         > 0 else None
+        macd_signal_1h_last  = macd_signal_1h[-1]  if len(macd_signal_1h)  > 0 else None
 
         # --- Bakiye ve PnL hesaplama ---
         current_balance = executor.get_balance('USDT')
         current_pnl     = current_balance - start_balance
 
-        # --- Strateji ve karar ---
+        # --- Dönem Parametrelerini Çek ---
+        period        = update_settings_for_period()
+        growth_factor = period.get("growth_factor", 1.0)
+        tp_ratio      = period.get("take_profit_ratio", settings.TAKE_PROFIT_RATIO)
+        sl_ratio      = period.get("stop_loss_ratio", settings.STOP_LOSS_RATIO)
+
+        # --- Strateji ve Karar ---
         strategy = Strategy()
         strategy.update_context(
             symbol=symbol,
@@ -127,7 +133,10 @@ def run_bot_cycle(symbol):
             rsi_1h=rsi_1h,
             macd_1h=macd_1h_last,
             macd_signal_1h=macd_signal_1h_last,
-            atr=atr
+            atr=atr,
+            growth_factor=growth_factor,
+            take_profit_ratio=tp_ratio,
+            stop_loss_ratio=sl_ratio
         )
         decision = strategy.decide_trade(current_balance, current_pnl)
         action   = decision.get("action")
@@ -175,14 +184,13 @@ def print_metrics():
 
 if __name__ == "__main__":
     # → Performans izlemeyi başlat
-    optimize_performance_infrastructure()
-
+    optimize_strategy_parameters()
     retry_count    = 0
     last_heartbeat = START_TIME
 
     while True:
         # Her döngü başında dönem ayarlarını güncelle
-        period = update_settings_for_period()
+        _ = update_settings_for_period()
 
         # Altcoin seçim (dynamic / static kontrolü)
         if settings.USE_DYNAMIC_SYMBOL_SELECTION:
