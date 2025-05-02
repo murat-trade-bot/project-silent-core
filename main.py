@@ -34,21 +34,26 @@ START_TIME = time.time()
 HEARTBEAT_INTERVAL = 3600  # saniye
 CSV_FILE = settings.CSV_LOG_FILE
 
-# --- Orijinal Temel Pozisyon Boyutları ( çevrilmeden önceki ) ---
-BASE_POSITION_PCT       = settings.POSITION_SIZE_PCT
-BASE_TRADE_USDT_AMOUNT  = getattr(settings, "TRADE_USDT_AMOUNT", None)
+# --- Orijinal Temel Pozisyon Boyutları ---
+BASE_POSITION_PCT      = settings.POSITION_SIZE_PCT
+BASE_TRADE_USDT_AMOUNT = getattr(settings, "TRADE_USDT_AMOUNT", None)
 
 # --- İstatistik Değişkenleri ---
-start_balance = executor.get_balance('USDT')
-total_trades  = 0
-win_trades    = 0
-loss_trades   = 0
+start_balance   = executor.get_balance('USDT')
+total_trades    = 0
+win_trades      = 0
+loss_trades     = 0
 trade_durations = []
-peak_balance  = start_balance
-max_drawdown  = 0.0
+peak_balance    = start_balance
+max_drawdown    = 0.0
 
-# Başlangıçta bir kez dönemi yükleyelim
-_ = update_settings_for_period()
+# Başlangıçta dönemi yükleyip loglayalım
+period = update_settings_for_period()
+logger.info(f"[PERIOD] Başlangıçta Aktif dönem: {period['name']} | "
+            f"Hedef={period['target_balance']:.2f} USDT | "
+            f"TP={period['take_profit_ratio']:.2f} | "
+            f"SL={period['stop_loss_ratio']:.2f} | "
+            f"Growth={period['growth_factor']}")
 print(f"Bot Başlatıldı:      {datetime.utcnow()} UTC")
 print(f"Başlangıç Sermayesi: {start_balance:.2f} USDT")
 print(f"Hedef Sermaye:       {settings.TARGET_USDT:.2f} USDT")
@@ -116,8 +121,14 @@ def run_bot_cycle(symbol):
         current_balance = executor.get_balance('USDT')
         current_pnl     = current_balance - start_balance
 
-        # --- Dönem Parametrelerini Çek ---
-        period        = update_settings_for_period()
+        # --- Dönem Parametrelerini Çek ve Logla ---
+        period = update_settings_for_period()
+        logger.info(f"[PERIOD] Döngü başında Aktif dönem: {period['name']} | "
+                    f"Hedef={period['target_balance']:.2f} USDT | "
+                    f"TP={period['take_profit_ratio']:.2f} | "
+                    f"SL={period['stop_loss_ratio']:.2f} | "
+                    f"Growth={period['growth_factor']}")
+
         growth_factor = period.get("growth_factor", 1.0)
         tp_ratio      = period.get("take_profit_ratio", settings.TAKE_PROFIT_RATIO)
         sl_ratio      = period.get("stop_loss_ratio", settings.STOP_LOSS_RATIO)
@@ -202,7 +213,7 @@ if __name__ == "__main__":
     last_heartbeat = START_TIME
 
     while True:
-        # Her döngü başında dönemi yeniden yükle
+        # Döngü başında dönem bilgilerini yeniden logla
         _ = update_settings_for_period()
 
         # Altcoin seçim (dynamic / static kontrolü)
