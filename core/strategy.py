@@ -82,7 +82,8 @@ class Strategy:
         # Position size scales by period growth factor
         base_pct = settings.POSITION_SIZE_PCT
         size_pct = round(base_pct * growth_factor, 4)
-        reason.append(f"Growth{x:g}".replace('x', str(growth_factor)))
+        # ← DÜZELTME: growth_factor direkt kullanılıyor
+        reason.append(f"Growth{growth_factor:g}")
 
         # Profit-target or stop-loss exit
         profit_pct = current_pnl / (settings.INITIAL_BALANCE or 1)
