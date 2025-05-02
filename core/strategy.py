@@ -48,9 +48,9 @@ class Strategy:
         self.onchain = 0.0
 
         # Dönem parametreleri (ana ayarlardan gelen varsayılanlar)
-        self.growth_factor = 1.0                   # main.py'den gelen growth_factor
-        self.tp_ratio      = settings.TAKE_PROFIT_RATIO  # main.py'den gelen tp_ratio
-        self.sl_ratio      = settings.STOP_LOSS_RATIO    # main.py'den gelen sl_ratio
+        self.growth_factor = 1.0                      # main.py'den gelen growth_factor
+        self.tp_ratio      = settings.TAKE_PROFIT_RATIO  # default TP
+        self.sl_ratio      = settings.STOP_LOSS_RATIO    # default SL
 
     def update_context(
         self,
@@ -65,17 +65,17 @@ class Strategy:
         macd_1h=None,
         macd_signal_1h=None,
         atr=None,
-        growth_factor=None,    # ← main.py: update_settings_for_period()["growth_factor"]
-        tp_ratio=None,         # ← main.py: update_settings_for_period()["take_profit_ratio"]
-        sl_ratio=None          # ← main.py: update_settings_for_period()["stop_loss_ratio"]
+        growth_factor=None,         # ← main.py’den gelen growth_factor
+        take_profit_ratio=None,     # ← main.py’den gelen TP oranı
+        stop_loss_ratio=None        # ← main.py’den gelen SL oranı
     ):
         # Context bilgisini temizle (pozisyon zamanları harici)
         self.reset()
 
         # Temel context
-        self.symbol = symbol
-        self.mode   = mode
-        self.risk   = risk
+        self.symbol   = symbol
+        self.mode     = mode
+        self.risk     = risk
         self.pressure = pressure
 
         # Teknik sinyalleri ata
@@ -89,13 +89,13 @@ class Strategy:
             'atr': atr
         })
 
-        # Dönemden gelen parametreleri uygula
+        # Dönemden gelen parametreleri ata
         if growth_factor is not None:
             self.growth_factor = growth_factor
-        if tp_ratio is not None:
-            self.tp_ratio = tp_ratio
-        if sl_ratio is not None:
-            self.sl_ratio = sl_ratio
+        if take_profit_ratio is not None:
+            self.tp_ratio = take_profit_ratio
+        if stop_loss_ratio is not None:
+            self.sl_ratio = stop_loss_ratio
 
         # Sentiment analizi
         raw_sent = analyze_sentiment(symbol)
@@ -121,11 +121,11 @@ class Strategy:
         reason = []
         score = 0.0
 
-        # Pozisyon büyüklüğü: main.py'den gelen growth_factor ile çarpılıyor
+        # Pozisyon büyüklüğü: growth_factor ile ölçekleniyor
         size_pct = round(settings.POSITION_SIZE_PCT * self.growth_factor, 4)
         reason.append(f"Growth{self.growth_factor:g}")
 
-        # Kar/Zarar kontrolü: dönemden gelen tp_ratio / sl_ratio
+        # Kar/Zarar kontrolü: tp_ratio / sl_ratio kullanılıyor
         profit_pct = current_pnl / (settings.INITIAL_BALANCE or 1)
         action = None
         if profit_pct >= self.tp_ratio:
@@ -144,18 +144,18 @@ class Strategy:
             self.position_open_time.pop(self.symbol, None)
             return {'action': 'SELL', 'reason': '|'.join(reason), 'size_pct': 0.0}
 
-        # Risk modu veya özel zamanlar
+        # Risk modu veya özel dönem
         if self.mode in ['holiday', 'macro_event'] or self.risk == 'extreme_risk':
             reason.append('NoTrade')
             return {'action': 'HOLD', 'reason': '|'.join(reason), 'size_pct': 0.0}
 
-        # Liquidity pressure
+        # Likidite baskısı
         if self.pressure == 'buy_pressure':
             score += 0.5; reason.append('BuyPres')
         if self.pressure == 'sell_pressure':
             score -= 0.5; reason.append('SellPres')
 
-        # Teknik indikatörler (1h ve 15m)
+        # Teknik indikatörler (1h & 15m)
         r1, m1, s1 = self.tech['rsi_1h'], self.tech['macd_1h'], self.tech['macd_signal_1h']
         if r1 is not None:
             if r1 < settings.RSI_OVERSOLD:    score += 0.7; reason.append('RSI1hOS')
@@ -174,7 +174,7 @@ class Strategy:
         score += self.sentiment * 0.2; reason.append('Sentiment')
         score += self.onchain   * 0.2; reason.append('OnChain')
 
-        # ATR bazlı volatilite scaling
+        # Volatilite scaling
         atr = self.tech['atr']
         if atr is not None and atr < settings.ATR_MIN_VOL:
             score *= 0.5; reason.append('LowVol')
@@ -190,11 +190,11 @@ class Strategy:
                 action = 'HOLD'
 
         # Stealth jitter
-        if action in ['BUY','SELL'] and random.random() < settings.TRADE_DROP_CHANCE:
+        if action in ['BUY', 'SELL'] and random.random() < settings.TRADE_DROP_CHANCE:
             reason.append('JitterDrop')
             action = 'HOLD'
 
-        # Pozisyon açıldıysa kaydet, kapatıldıysa sil
+        # Pozisyon açma/kapatma kaydı
         if action == 'BUY' and self.symbol not in self.position_open_time:
             self.position_open_time[self.symbol] = datetime.utcnow()
         elif action == 'SELL' and self.symbol in self.position_open_time:
