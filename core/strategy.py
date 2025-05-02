@@ -20,36 +20,66 @@ class Strategy:
     MIN_HOLD_TIME = timedelta(minutes=5)
 
     def __init__(self):
+        # Pozisyon açılma zamanlarını tutar (symbol → datetime)
+        self.position_open_time = {}
+        # Context ve dönem parametrelerini hazırla
         self.reset()
 
     def reset(self):
+        # Sadece context bilgisini sıfırlar (pozisyon zamanları korunur)
         self.symbol = None
         self.mode = None
         self.risk = None
         self.pressure = None
-        self.tech = {}
+
+        # Teknik analiz sinyalleri
+        self.tech = {
+            'rsi_15m': None,
+            'macd_15m': None,
+            'macd_signal_15m': None,
+            'rsi_1h': None,
+            'macd_1h': None,
+            'macd_signal_1h': None,
+            'atr': None
+        }
+
+        # Duygu ve on-chain
         self.sentiment = 0.0
         self.onchain = 0.0
-        # dönem parametreleri
-        self.growth_factor = 1.0
-        self.tp_ratio = settings.TAKE_PROFIT_RATIO
-        self.sl_ratio = settings.STOP_LOSS_RATIO
-        # pozisyon açılma zamanı
-        self.position_open_time = {}
+
+        # Dönem parametreleri (ana ayarlardan gelen varsayılanlar)
+        self.growth_factor = 1.0                   # main.py'den gelen growth_factor
+        self.tp_ratio      = settings.TAKE_PROFIT_RATIO  # main.py'den gelen tp_ratio
+        self.sl_ratio      = settings.STOP_LOSS_RATIO    # main.py'den gelen sl_ratio
 
     def update_context(
-        self, symbol, mode, risk, pressure,
-        rsi_15m=None, macd_15m=None, macd_signal_15m=None,
-        rsi_1h=None, macd_1h=None, macd_signal_1h=None,
+        self,
+        symbol,
+        mode,
+        risk,
+        pressure,
+        rsi_15m=None,
+        macd_15m=None,
+        macd_signal_15m=None,
+        rsi_1h=None,
+        macd_1h=None,
+        macd_signal_1h=None,
         atr=None,
-        growth_factor=None, take_profit_ratio=None, stop_loss_ratio=None
+        growth_factor=None,    # ← main.py: update_settings_for_period()["growth_factor"]
+        tp_ratio=None,         # ← main.py: update_settings_for_period()["take_profit_ratio"]
+        sl_ratio=None          # ← main.py: update_settings_for_period()["stop_loss_ratio"]
     ):
+        # Context bilgisini temizle (pozisyon zamanları harici)
         self.reset()
+
+        # Temel context
         self.symbol = symbol
-        self.mode = mode
-        self.risk = risk
+        self.mode   = mode
+        self.risk   = risk
         self.pressure = pressure
-        self.tech = {
+
+        # Teknik sinyalleri ata
+        self.tech.update({
             'rsi_15m': rsi_15m,
             'macd_15m': macd_15m,
             'macd_signal_15m': macd_signal_15m,
@@ -57,25 +87,33 @@ class Strategy:
             'macd_1h': macd_1h,
             'macd_signal_1h': macd_signal_1h,
             'atr': atr
-        }
-        # dönem parametrelerini güncelle (varsa)
+        })
+
+        # Dönemden gelen parametreleri uygula
         if growth_factor is not None:
             self.growth_factor = growth_factor
-        if take_profit_ratio is not None:
-            self.tp_ratio = take_profit_ratio
-        if stop_loss_ratio is not None:
-            self.sl_ratio = stop_loss_ratio
+        if tp_ratio is not None:
+            self.tp_ratio = tp_ratio
+        if sl_ratio is not None:
+            self.sl_ratio = sl_ratio
 
-        # sentiment & on-chain
+        # Sentiment analizi
         raw_sent = analyze_sentiment(symbol)
         try:
-            self.sentiment = float(raw_sent.get('score', raw_sent) if isinstance(raw_sent, dict) else raw_sent)
+            self.sentiment = float(
+                raw_sent.get('score', raw_sent)
+                if isinstance(raw_sent, dict) else raw_sent
+            )
         except:
             self.sentiment = 0.0
 
+        # On-chain aktivite
         raw_chain = track_onchain_activity(symbol)
         try:
-            self.onchain = float(raw_chain.get('activity', raw_chain) if isinstance(raw_chain, dict) else raw_chain)
+            self.onchain = float(
+                raw_chain.get('activity', raw_chain)
+                if isinstance(raw_chain, dict) else raw_chain
+            )
         except:
             self.onchain = 0.0
 
@@ -83,11 +121,11 @@ class Strategy:
         reason = []
         score = 0.0
 
-        # pozisyon büyüklüğü
+        # Pozisyon büyüklüğü: main.py'den gelen growth_factor ile çarpılıyor
         size_pct = round(settings.POSITION_SIZE_PCT * self.growth_factor, 4)
         reason.append(f"Growth{self.growth_factor:g}")
 
-        # TP / SL kontrolü
+        # Kar/Zarar kontrolü: dönemden gelen tp_ratio / sl_ratio
         profit_pct = current_pnl / (settings.INITIAL_BALANCE or 1)
         action = None
         if profit_pct >= self.tp_ratio:
@@ -97,7 +135,7 @@ class Strategy:
             reason.append(f"SL({self.sl_ratio:.2f})")
             action = 'SELL'
 
-        # minimum tutma süresi
+        # Minimum hold time kontrolü
         if action == 'SELL' and self.symbol in self.position_open_time:
             opened = self.position_open_time[self.symbol]
             if datetime.utcnow() - opened < self.MIN_HOLD_TIME:
@@ -106,42 +144,42 @@ class Strategy:
             self.position_open_time.pop(self.symbol, None)
             return {'action': 'SELL', 'reason': '|'.join(reason), 'size_pct': 0.0}
 
-        # risk & mode kontrolleri
+        # Risk modu veya özel zamanlar
         if self.mode in ['holiday', 'macro_event'] or self.risk == 'extreme_risk':
             reason.append('NoTrade')
             return {'action': 'HOLD', 'reason': '|'.join(reason), 'size_pct': 0.0}
 
-        # likidite baskısı
+        # Liquidity pressure
         if self.pressure == 'buy_pressure':
             score += 0.5; reason.append('BuyPres')
         if self.pressure == 'sell_pressure':
             score -= 0.5; reason.append('SellPres')
 
-        # teknik indikatörler
+        # Teknik indikatörler (1h ve 15m)
         r1, m1, s1 = self.tech['rsi_1h'], self.tech['macd_1h'], self.tech['macd_signal_1h']
         if r1 is not None:
-            if r1 < settings.RSI_OVERSOLD: score += 0.7; reason.append('RSI1hOS')
+            if r1 < settings.RSI_OVERSOLD:    score += 0.7; reason.append('RSI1hOS')
             elif r1 > settings.RSI_OVERBOUGHT: score -= 0.7; reason.append('RSI1hOB')
         if m1 is not None and s1 is not None:
             score += (0.5 if m1 > s1 else -0.5); reason.append('MACD1h')
 
         r15, m15, s15 = self.tech['rsi_15m'], self.tech['macd_15m'], self.tech['macd_signal_15m']
         if r15 is not None:
-            if r15 < settings.RSI_OVERSOLD: score += 0.3; reason.append('RSI15mOS')
+            if r15 < settings.RSI_OVERSOLD:    score += 0.3; reason.append('RSI15mOS')
             elif r15 > settings.RSI_OVERBOUGHT: score -= 0.3; reason.append('RSI15mOB')
         if m15 is not None and s15 is not None:
             score += (0.3 if m15 > s15 else -0.3); reason.append('MACD15m')
 
-        # duygu ve on-chain
+        # Sentiment & On-chain katkısı
         score += self.sentiment * 0.2; reason.append('Sentiment')
-        score += self.onchain * 0.2; reason.append('OnChain')
+        score += self.onchain   * 0.2; reason.append('OnChain')
 
-        # volatilite scaling
+        # ATR bazlı volatilite scaling
         atr = self.tech['atr']
         if atr is not None and atr < settings.ATR_MIN_VOL:
             score *= 0.5; reason.append('LowVol')
 
-        # nihai karar
+        # Nihai karar
         if action is None:
             thr = settings.SCORE_BUY_THRESHOLD
             if score >= thr:
@@ -151,15 +189,15 @@ class Strategy:
             else:
                 action = 'HOLD'
 
-        # stealth jitter
+        # Stealth jitter
         if action in ['BUY','SELL'] and random.random() < settings.TRADE_DROP_CHANCE:
             reason.append('JitterDrop')
             action = 'HOLD'
 
-        # pozisyon açma zamanı
-        if action == 'BUY':
+        # Pozisyon açıldıysa kaydet, kapatıldıysa sil
+        if action == 'BUY' and self.symbol not in self.position_open_time:
             self.position_open_time[self.symbol] = datetime.utcnow()
-        elif action == 'SELL':
+        elif action == 'SELL' and self.symbol in self.position_open_time:
             self.position_open_time.pop(self.symbol, None)
 
         return {'action': action, 'reason': '|'.join(reason), 'size_pct': size_pct}
