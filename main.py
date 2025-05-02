@@ -34,14 +34,18 @@ START_TIME = time.time()
 HEARTBEAT_INTERVAL = 3600  # saniye
 CSV_FILE = settings.CSV_LOG_FILE
 
+# --- Orijinal Temel Pozisyon Boyutları ( çevrilmeden önceki ) ---
+BASE_POSITION_PCT       = settings.POSITION_SIZE_PCT
+BASE_TRADE_USDT_AMOUNT  = getattr(settings, "TRADE_USDT_AMOUNT", None)
+
 # --- İstatistik Değişkenleri ---
 start_balance = executor.get_balance('USDT')
-total_trades = 0
-win_trades = 0
-loss_trades = 0
+total_trades  = 0
+win_trades    = 0
+loss_trades   = 0
 trade_durations = []
-peak_balance = start_balance
-max_drawdown = 0.0
+peak_balance  = start_balance
+max_drawdown  = 0.0
 
 # Başlangıçta bir kez dönemi yükleyelim
 _ = update_settings_for_period()
@@ -73,10 +77,9 @@ def log_trade_csv(trade: dict):
 def run_bot_cycle(symbol):
     global start_balance
     cycle_start = time.time()
+
     # (0) İnsanvari gecikme
     time.sleep(random.uniform(2, 10))
-    cycle_time = datetime.utcnow()
-    print(f"{cycle_time} [CYCLE] {symbol} için döngü başlıyor.")
     logger.log(f"[CYCLE] {symbol} için döngü başlıyor.", level="INFO")
 
     try:
@@ -104,7 +107,6 @@ def run_bot_cycle(symbol):
         rsi_1h = calculate_rsi(prices_1h)[-1] if prices_1h else None
         macd_1h, macd_signal_1h = calculate_macd(prices_1h)
 
-        # Diziler boş mu diye len ile kontrol edelim
         macd_15m_last        = macd_15m[-1]        if len(macd_15m)        > 0 else None
         macd_signal_15m_last = macd_signal_15m[-1] if len(macd_signal_15m) > 0 else None
         macd_1h_last         = macd_1h[-1]         if len(macd_1h)         > 0 else None
@@ -119,6 +121,11 @@ def run_bot_cycle(symbol):
         growth_factor = period.get("growth_factor", 1.0)
         tp_ratio      = period.get("take_profit_ratio", settings.TAKE_PROFIT_RATIO)
         sl_ratio      = period.get("stop_loss_ratio", settings.STOP_LOSS_RATIO)
+
+        # --- Dinamik Pozisyon Büyüklüğünü Ayarla ---
+        settings.POSITION_SIZE_PCT = BASE_POSITION_PCT * growth_factor
+        if BASE_TRADE_USDT_AMOUNT is not None:
+            settings.TRADE_USDT_AMOUNT = BASE_TRADE_USDT_AMOUNT * growth_factor
 
         # --- Strateji ve Karar ---
         strategy = Strategy()
@@ -188,13 +195,14 @@ def print_metrics():
 
 
 if __name__ == "__main__":
-    # → Performans izlemeyi başlat
+    # → Performans optimizasyonu ve parametre kontrolü
     optimize_strategy_parameters()
+
     retry_count    = 0
     last_heartbeat = START_TIME
 
     while True:
-        # Her döngü başında dönem ayarlarını güncelle
+        # Her döngü başında dönemi yeniden yükle
         _ = update_settings_for_period()
 
         # Altcoin seçim (dynamic / static kontrolü)
@@ -219,11 +227,9 @@ if __name__ == "__main__":
 
                 # ► Telegram bildirimi
                 if settings.NOTIFIER_ENABLED:
-                    message = (
-                        f"İşlem: {result['action']} {result['symbol']} "
-                        f"@ {result['price']:.2f} USD, PnL: {result['pnl']:+.2f} USDT"
-                    )
-                    send_notification(message)
+                    msg = (f"İşlem: {result['action']} {result['symbol']} "
+                           f"@ {result['price']:.2f} USD, PnL: {result['pnl']:+.2f} USDT")
+                    send_notification(msg)
 
                 log_trade_csv(result)
                 print_metrics()
