@@ -141,6 +141,11 @@ def run_bot_cycle(symbol):
         decision = strategy.decide_trade(current_balance, current_pnl)
         action   = decision.get("action")
 
+        # ★ Eğer zaten açık bir pozisyon varsa yeni BUY engelle ★
+        if action == "BUY" and symbol in strategy.position_open_time:
+            logger.log(f"[STRATEGY] {symbol} için zaten açık pozisyon var, BUY iptal edildi.", level="INFO")
+            action = "HOLD"
+
         # (5) Stealth drop
         if stealth.maybe_drop_trade():
             logger.log(f"[STEALTH] {symbol} işlemi iptal edildi.", level="WARNING")
