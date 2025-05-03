@@ -44,7 +44,7 @@ try:
     usdt_bal = executor.get_balance('USDT')
     xrp_bal  = executor.get_balance('XRP')
     bnb_bal  = executor.get_balance('BNB')
-    # XRPUSDT ve BNBUSDT fiyatlarını alın (live client varsa)
+    # XRPUSDT ve BNBUSDT fiyatlarını al
     try:
         xrp_price = float(executor.client.get_symbol_ticker(symbol='XRPUSDT')['price'])
         bnb_price = float(executor.client.get_symbol_ticker(symbol='BNBUSDT')['price'])
@@ -213,7 +213,23 @@ def run_bot_cycle(symbol):
 
 def print_metrics():
     global peak_balance, max_drawdown
-    curr_balance = executor.get_balance('USDT')
+
+    # --- Portföy değerini USD cinsinden hesapla ---
+    curr_usdt = executor.get_balance('USDT')
+    # XRP ve BNB bakiye × anlık fiyat
+    try:
+        xrp_price = float(executor.client.get_symbol_ticker(symbol='XRPUSDT')['price'])
+        bnb_price = float(executor.client.get_symbol_ticker(symbol='BNBUSDT')['price'])
+    except Exception:
+        # API yoksa fallback olarak 1m OHLCV kapanış fiyatı
+        xrp_price = fetch_ohlcv_from_binance('XRPUSDT', '1m', limit=1)[-1][4]
+        bnb_price = fetch_ohlcv_from_binance('BNBUSDT', '1m', limit=1)[-1][4]
+    curr_xrp = executor.get_balance('XRP') * xrp_price
+    curr_bnb = executor.get_balance('BNB') * bnb_price
+
+    curr_balance = curr_usdt + curr_xrp + curr_bnb
+
+    # --- Drawdown ve diğer hesaplamalar ---
     peak_balance = max(peak_balance, curr_balance)
     drawdown     = peak_balance - curr_balance
     max_drawdown = max(max_drawdown, drawdown)
@@ -222,7 +238,8 @@ def print_metrics():
     avg_dur      = (sum(trade_durations) / len(trade_durations)) if trade_durations else 0
     win_rate     = (win_trades / total_trades * 100) if total_trades else 0
 
-    print(f"Anlık Sermaye:       {curr_balance:.2f} USDT")
+    print(f"Anlık Portföy Değeri: {curr_balance:.2f} USDT "
+          f"(USDT:{curr_usdt:.2f}, XRP:{curr_xrp:.2f}, BNB:{curr_bnb:.2f})")
     print(f"Toplam PnL:          {(curr_balance - start_balance):.2f} USDT ({pnl_pct:+.2f}%)")
     print(f"Hedefe Progress:     {progress_pct:.4f}%")
     print(f"Toplam İşlem:        {total_trades}  Kazanan: {win_trades}  ({win_rate:.1f}%)")
