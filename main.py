@@ -129,9 +129,9 @@ def run_bot_cycle(symbol):
                     f"SL={period['stop_loss_ratio']:.2f} | "
                     f"Growth={period['growth_factor']}")
 
-        growth_factor = period.get("growth_factor", 1.0)
-        tp_ratio      = period.get("take_profit_ratio", settings.TAKE_PROFIT_RATIO)
-        sl_ratio      = period.get("stop_loss_ratio", settings.STOP_LOSS_RATIO)
+        growth_factor = period["growth_factor"]
+        tp_ratio      = period["take_profit_ratio"]
+        sl_ratio      = period["stop_loss_ratio"]
 
         # --- Dinamik Pozisyon Büyüklüğünü Ayarla ---
         settings.POSITION_SIZE_PCT = BASE_POSITION_PCT * growth_factor
@@ -224,7 +224,9 @@ if __name__ == "__main__":
 
         for symbol in symbols_to_trade:
             result = run_bot_cycle(symbol)
-            if result:
+
+            # **SADECE** gerçek al/sat işlemlerini sayalım ve loglayalım
+            if result and result['action'] in ('BUY', 'SELL'):
                 total_trades += 1
                 if result['pnl'] >= 0:
                     win_trades += 1
@@ -245,12 +247,12 @@ if __name__ == "__main__":
                 log_trade_csv(result)
                 print_metrics()
 
-            # Heartbeat
-            if time.time() - last_heartbeat >= HEARTBEAT_INTERVAL:
-                uptime = timedelta(seconds=int(time.time() - START_TIME))
-                print(f"[HEARTBEAT] Bot canlı, uptime: {uptime}")
-                last_heartbeat = time.time()
+        # Heartbeat
+        if time.time() - last_heartbeat >= HEARTBEAT_INTERVAL:
+            uptime = timedelta(seconds=int(time.time() - START_TIME))
+            print(f"[HEARTBEAT] Bot canlı, uptime: {uptime}")
+            last_heartbeat = time.time()
 
-            time.sleep(settings.CYCLE_INTERVAL +
-                       random.randint(settings.CYCLE_JITTER_MIN,
-                                      settings.CYCLE_JITTER_MAX))
+        time.sleep(settings.CYCLE_INTERVAL +
+                   random.randint(settings.CYCLE_JITTER_MIN,
+                                  settings.CYCLE_JITTER_MAX))
