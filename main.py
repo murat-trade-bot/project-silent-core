@@ -38,8 +38,26 @@ CSV_FILE = settings.CSV_LOG_FILE
 BASE_POSITION_PCT      = settings.POSITION_SIZE_PCT
 BASE_TRADE_USDT_AMOUNT = getattr(settings, "TRADE_USDT_AMOUNT", None)
 
-# --- İstatistik Değişkenleri ---
-start_balance   = executor.get_balance('USDT')
+# --- İstatistik Değişkenleri (USDT + XRP + BNB Bakiyesi) ---
+try:
+    # USDT, XRP, BNB bakiyelerini çek
+    usdt_bal = executor.get_balance('USDT')
+    xrp_bal  = executor.get_balance('XRP')
+    bnb_bal  = executor.get_balance('BNB')
+    # XRPUSDT ve BNBUSDT fiyatlarını alın (live client varsa)
+    try:
+        xrp_price = float(executor.client.get_symbol_ticker(symbol='XRPUSDT')['price'])
+        bnb_price = float(executor.client.get_symbol_ticker(symbol='BNBUSDT')['price'])
+    except Exception:
+        # Fallback: en son OHLCV kapanış fiyatını kullan
+        xrp_price = fetch_ohlcv_from_binance('XRPUSDT', '1m', limit=1)[-1][4]
+        bnb_price = fetch_ohlcv_from_binance('BNBUSDT', '1m', limit=1)[-1][4]
+    # Toplam USD karşılığı
+    start_balance = usdt_bal + xrp_bal * xrp_price + bnb_bal * bnb_price
+except Exception:
+    # Hata durumunda en azından USDT bakiyesi
+    start_balance = executor.get_balance('USDT')
+
 total_trades    = 0
 win_trades      = 0
 loss_trades     = 0
@@ -49,13 +67,16 @@ max_drawdown    = 0.0
 
 # Başlangıçta dönemi yükleyip loglayalım
 period = update_settings_for_period()
-logger.info(f"[PERIOD] Başlangıçta Aktif dönem: {period['name']} | "
-            f"Hedef={period['target_balance']:.2f} USDT | "
-            f"TP={period['take_profit_ratio']:.2f} | "
-            f"SL={period['stop_loss_ratio']:.2f} | "
-            f"Growth={period['growth_factor']}")
+logger.info(
+    f"[PERIOD] Başlangıçta Aktif dönem: {period['name']} | "
+    f"Hedef={period['target_balance']:.2f} USDT | "
+    f"TP={period['take_profit_ratio']:.2f} | "
+    f"SL={period['stop_loss_ratio']:.2f} | "
+    f"Growth={period['growth_factor']}"
+)
+
 print(f"Bot Başlatıldı:      {datetime.utcnow()} UTC")
-print(f"Başlangıç Sermayesi: {start_balance:.2f} USDT")
+print(f"Başlangıç Portföy Değeri: {start_balance:.2f} USDT (USDT+XRP+BNB)")
 print(f"Hedef Sermaye:       {settings.TARGET_USDT:.2f} USDT")
 
 
@@ -130,11 +151,13 @@ def run_bot_cycle(symbol):
 
         # --- Dönem Parametrelerini Çek ve Logla ---
         period = update_settings_for_period()
-        logger.info(f"[PERIOD] Döngü başında Aktif dönem: {period['name']} | "
-                    f"Hedef={period['target_balance']:.2f} USDT | "
-                    f"TP={period['take_profit_ratio']:.2f} | "
-                    f"SL={period['stop_loss_ratio']:.2f} | "
-                    f"Growth={period['growth_factor']}")
+        logger.info(
+            f"[PERIOD] Döngü başında Aktif dönem: {period['name']} | "
+            f"Hedef={period['target_balance']:.2f} USDT | "
+            f"TP={period['take_profit_ratio']:.2f} | "
+            f"SL={period['stop_loss_ratio']:.2f} | "
+            f"Growth={period['growth_factor']}"
+        )
 
         growth_factor = period.get("growth_factor", 1.0)
         tp_ratio      = period.get("take_profit_ratio", settings.TAKE_PROFIT_RATIO)
@@ -234,14 +257,18 @@ if __name__ == "__main__":
                     loss_trades += 1
                 trade_durations.append(result['duration'])
 
-                print(f"{result['timestamp']} - {result['symbol']} "
-                      f"{result['action']} {result['quantity']} @ {result['price']} → "
-                      f"PnL: {result['pnl']:+.2f} USDT")
+                print(
+                    f"{result['timestamp']} - {result['symbol']} "
+                    f"{result['action']} {result['quantity']} @ {result['price']} → "
+                    f"PnL: {result['pnl']:+.2f} USDT"
+                )
 
                 # ► Telegram bildirimi
                 if settings.NOTIFIER_ENABLED:
-                    msg = (f"İşlem: {result['action']} {result['symbol']} "
-                           f"@ {result['price']:.2f} USD, PnL: {result['pnl']:+.2f} USDT")
+                    msg = (
+                        f"İşlem: {result['action']} {result['symbol']} "
+                        f"@ {result['price']:.2f} USD, PnL: {result['pnl']:+.2f} USDT"
+                    )
                     send_notification(msg)
 
                 log_trade_csv(result)
@@ -253,6 +280,7 @@ if __name__ == "__main__":
                 print(f"[HEARTBEAT] Bot canlı, uptime: {uptime}")
                 last_heartbeat = time.time()
 
-            time.sleep(settings.CYCLE_INTERVAL +
-                       random.randint(settings.CYCLE_JITTER_MIN,
-                                      settings.CYCLE_JITTER_MAX))
+            time.sleep(
+                settings.CYCLE_INTERVAL +
+                random.randint(settings.CYCLE_JITTER_MIN, settings.CYCLE_JITTER_MAX)
+            )
