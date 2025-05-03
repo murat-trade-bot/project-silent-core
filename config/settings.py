@@ -168,6 +168,8 @@ PERIODS = [
 RSI_OVERSOLD   = float(_get_env("RSI_OVERSOLD", "30"))
 RSI_OVERBOUGHT = float(_get_env("RSI_OVERBOUGHT", "70"))
 ATR_MIN_VOL    = float(_get_env("ATR_MIN_VOL", "50"))
+# Volatiliteye göre pozisyon boyutlandırma için oran
+ATR_RATIO      = 0.02
 
 # --- Decision Tuning ---
 SCORE_BUY_THRESHOLD = float(_get_env("SCORE_BUY_THRESHOLD", "1.5"))
