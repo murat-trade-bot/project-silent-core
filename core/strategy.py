@@ -121,12 +121,16 @@ class Strategy:
         reason = []
         score = 0.0
 
-        # --- POZİSYON BÜYÜKLÜĞÜ: ATR’e göre ölçekle ---  # ← DEĞİŞTİRİLDİ
+        # --- POZİSYON BÜYÜKLÜĞÜ: ATR’e göre ölçekle ---  
         atr = self.tech.get('atr')
         base_size = settings.POSITION_SIZE_PCT * self.growth_factor
+
+        # ATR_RATIO default 1.0, ayarlanmışsa settings üzerinden alınır
+        atr_ratio = getattr(settings, 'ATR_RATIO', 1.0)
+
         if atr and atr > 0:
-            size_pct = min(base_size, settings.ATR_RATIO / atr)  # ← DEĞİŞTİRİLDİ
-            reason.append(f"VolScale({settings.ATR_RATIO:.2f}/{atr:.2f})")  # ← DEĞİŞTİRİLDİ
+            size_pct = min(base_size, atr_ratio / atr)
+            reason.append(f"VolScale({atr_ratio:.2f}/{atr:.2f})")
         else:
             size_pct = round(base_size, 4)
             reason.append(f"Growth{self.growth_factor:g}")
