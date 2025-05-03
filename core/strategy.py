@@ -121,9 +121,16 @@ class Strategy:
         reason = []
         score = 0.0
 
-        # Pozisyon büyüklüğü: main.py’den gelen growth_factor ile çarpılıyor
-        size_pct = round(settings.POSITION_SIZE_PCT * self.growth_factor, 4)
-        reason.append(f"Growth{self.growth_factor:g}")
+        # --- POZİSYON BÜYÜKLÜĞÜ: ATR’e göre ölçekle ---  # ← DEĞİŞTİRİLDİ
+        atr = self.tech.get('atr')
+        base_size = settings.POSITION_SIZE_PCT * self.growth_factor
+        if atr and atr > 0:
+            size_pct = min(base_size, settings.ATR_RATIO / atr)  # ← DEĞİŞTİRİLDİ
+            reason.append(f"VolScale({settings.ATR_RATIO:.2f}/{atr:.2f})")  # ← DEĞİŞTİRİLDİ
+        else:
+            size_pct = round(base_size, 4)
+            reason.append(f"Growth{self.growth_factor:g}")
+        # -------------------------------------------
 
         # Kar/Zarar kontrolü: dönemden gelen tp_ratio / sl_ratio
         profit_pct = current_pnl / (settings.INITIAL_BALANCE or 1)
@@ -179,7 +186,6 @@ class Strategy:
         score += self.onchain   * 0.2; reason.append('OnChain')
 
         # ATR bazlı volatilite scaling
-        atr = self.tech['atr']
         if atr is not None and atr < settings.ATR_MIN_VOL:
             score *= 0.5; reason.append('LowVol')
 
