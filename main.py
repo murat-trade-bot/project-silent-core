@@ -40,22 +40,17 @@ BASE_TRADE_USDT_AMOUNT = getattr(settings, "TRADE_USDT_AMOUNT", None)
 
 # --- İstatistik Değişkenleri (USDT + XRP + BNB Bakiyesi) ---
 try:
-    # USDT, XRP, BNB bakiyelerini çek
     usdt_bal = executor.get_balance('USDT')
     xrp_bal  = executor.get_balance('XRP')
     bnb_bal  = executor.get_balance('BNB')
-    # XRPUSDT ve BNBUSDT fiyatlarını al
     try:
         xrp_price = float(executor.client.get_symbol_ticker(symbol='XRPUSDT')['price'])
         bnb_price = float(executor.client.get_symbol_ticker(symbol='BNBUSDT')['price'])
     except Exception:
-        # Fallback: en son OHLCV kapanış fiyatını kullan
         xrp_price = fetch_ohlcv_from_binance('XRPUSDT', '1m', limit=1)[-1][4]
         bnb_price = fetch_ohlcv_from_binance('BNBUSDT', '1m', limit=1)[-1][4]
-    # Toplam USD karşılığı
     start_balance = usdt_bal + xrp_bal * xrp_price + bnb_bal * bnb_price
 except Exception:
-    # Hata durumunda en azından USDT bakiyesi
     start_balance = executor.get_balance('USDT')
 
 total_trades    = 0
@@ -131,13 +126,19 @@ def run_bot_cycle(symbol):
         # --- Teknik Analiz Verileri ---
         ohlcv_15m = fetch_ohlcv_from_binance(symbol, "15m", limit=50)
         prices_15m = [c[4] for c in ohlcv_15m]
-        rsi_15m = calculate_rsi(prices_15m)[-1] if prices_15m else None
+        rsi_15m    = calculate_rsi(prices_15m)[-1] if prices_15m else None  # ← DEĞİŞTİRİLDİ
         macd_15m, macd_signal_15m = calculate_macd(prices_15m)
         atr = calculate_atr(ohlcv_15m)
 
+        # --- (XRP/BNB için RSI filtre) ---
+        if symbol.endswith('XRPUSDT') or symbol.endswith('BNBUSDT'):              # ← DEĞİŞTİRİLDİ
+            if rsi_15m is None or rsi_15m < 40 or rsi_15m > 60:                  # ← DEĞİŞTİRİLDİ
+                logger.log(f"[FILTER] {symbol} RSI={rsi_15m}, atlanıyor.", level="INFO")  # ← DEĞİŞTİRİLDİ
+                return None                                                      # ← DEĞİŞTİRİLDİ
+
         ohlcv_1h = fetch_ohlcv_from_binance(symbol, "1h", limit=50)
         prices_1h = [c[4] for c in ohlcv_1h]
-        rsi_1h = calculate_rsi(prices_1h)[-1] if prices_1h else None
+        rsi_1h    = calculate_rsi(prices_1h)[-1] if prices_1h else None
         macd_1h, macd_signal_1h = calculate_macd(prices_1h)
 
         macd_15m_last        = macd_15m[-1]        if len(macd_15m)        > 0 else None
@@ -216,12 +217,10 @@ def print_metrics():
 
     # --- Portföy değerini USD cinsinden hesapla ---
     curr_usdt = executor.get_balance('USDT')
-    # XRP ve BNB bakiye × anlık fiyat
     try:
         xrp_price = float(executor.client.get_symbol_ticker(symbol='XRPUSDT')['price'])
         bnb_price = float(executor.client.get_symbol_ticker(symbol='BNBUSDT')['price'])
     except Exception:
-        # API yoksa fallback olarak 1m OHLCV kapanış fiyatı
         xrp_price = fetch_ohlcv_from_binance('XRPUSDT', '1m', limit=1)[-1][4]
         bnb_price = fetch_ohlcv_from_binance('BNBUSDT', '1m', limit=1)[-1][4]
     curr_xrp = executor.get_balance('XRP') * xrp_price
@@ -248,17 +247,14 @@ def print_metrics():
 
 
 if __name__ == "__main__":
-    # → Performans optimizasyonu ve parametre kontrolü
     optimize_strategy_parameters()
 
     retry_count    = 0
     last_heartbeat = START_TIME
 
     while True:
-        # Döngü başında dönem bilgilerini yeniden logla
         _ = update_settings_for_period()
 
-        # Altcoin seçim (dynamic / static kontrolü)
         if settings.USE_DYNAMIC_SYMBOL_SELECTION:
             symbols_to_trade = select_coins() or settings.SYMBOLS
         else:
@@ -280,7 +276,6 @@ if __name__ == "__main__":
                     f"PnL: {result['pnl']:+.2f} USDT"
                 )
 
-                # ► Telegram bildirimi
                 if settings.NOTIFIER_ENABLED:
                     msg = (
                         f"İşlem: {result['action']} {result['symbol']} "
@@ -291,7 +286,6 @@ if __name__ == "__main__":
                 log_trade_csv(result)
                 print_metrics()
 
-            # Heartbeat
             if time.time() - last_heartbeat >= HEARTBEAT_INTERVAL:
                 uptime = timedelta(seconds=int(time.time() - START_TIME))
                 print(f"[HEARTBEAT] Bot canlı, uptime: {uptime}")
