@@ -48,9 +48,9 @@ class Strategy:
         self.onchain = 0.0
 
         # Dönem parametreleri (ana ayarlardan gelen varsayılanlar)
-        self.growth_factor = 1.0                      # main.py'den gelen growth_factor
-        self.tp_ratio      = settings.TAKE_PROFIT_RATIO  # default TP
-        self.sl_ratio      = settings.STOP_LOSS_RATIO    # default SL
+        self.growth_factor = 1.0                      # main.py’den gelen growth_factor
+        self.tp_ratio      = settings.TAKE_PROFIT_RATIO  # main.py’den gelen tp_ratio
+        self.sl_ratio      = settings.STOP_LOSS_RATIO    # main.py’den gelen sl_ratio
 
     def update_context(
         self,
@@ -65,11 +65,11 @@ class Strategy:
         macd_1h=None,
         macd_signal_1h=None,
         atr=None,
-        growth_factor=None,         # ← main.py’den gelen growth_factor
-        take_profit_ratio=None,     # ← main.py’den gelen TP oranı
-        stop_loss_ratio=None        # ← main.py’den gelen SL oranı
+        growth_factor=None,         # ← main.py’den gelen
+        take_profit_ratio=None,     # ← YENİ isim: main.py ile eşleşiyor
+        stop_loss_ratio=None        # ← YENİ isim: main.py ile eşleşiyor
     ):
-        # Context bilgisini temizle (pozisyon zamanları harici)
+        # Context bilgisini temizle (pozisyon zamanları korunur)
         self.reset()
 
         # Temel context
@@ -80,13 +80,13 @@ class Strategy:
 
         # Teknik sinyalleri ata
         self.tech.update({
-            'rsi_15m': rsi_15m,
-            'macd_15m': macd_15m,
-            'macd_signal_15m': macd_signal_15m,
-            'rsi_1h': rsi_1h,
-            'macd_1h': macd_1h,
-            'macd_signal_1h': macd_signal_1h,
-            'atr': atr
+            'rsi_15m':           rsi_15m,
+            'macd_15m':          macd_15m,
+            'macd_signal_15m':   macd_signal_15m,
+            'rsi_1h':            rsi_1h,
+            'macd_1h':           macd_1h,
+            'macd_signal_1h':    macd_signal_1h,
+            'atr':               atr
         })
 
         # Dönemden gelen parametreleri ata
@@ -121,11 +121,11 @@ class Strategy:
         reason = []
         score = 0.0
 
-        # Pozisyon büyüklüğü: growth_factor ile ölçekleniyor
+        # Pozisyon büyüklüğü: main.py’den gelen growth_factor ile çarpılıyor
         size_pct = round(settings.POSITION_SIZE_PCT * self.growth_factor, 4)
         reason.append(f"Growth{self.growth_factor:g}")
 
-        # Kar/Zarar kontrolü: tp_ratio / sl_ratio kullanılıyor
+        # Kar/Zarar kontrolü: dönemden gelen tp_ratio / sl_ratio
         profit_pct = current_pnl / (settings.INITIAL_BALANCE or 1)
         action = None
         if profit_pct >= self.tp_ratio:
@@ -144,29 +144,33 @@ class Strategy:
             self.position_open_time.pop(self.symbol, None)
             return {'action': 'SELL', 'reason': '|'.join(reason), 'size_pct': 0.0}
 
-        # Risk modu veya özel dönem
+        # Risk modu veya özel zamanlar
         if self.mode in ['holiday', 'macro_event'] or self.risk == 'extreme_risk':
             reason.append('NoTrade')
             return {'action': 'HOLD', 'reason': '|'.join(reason), 'size_pct': 0.0}
 
-        # Likidite baskısı
+        # Liquidity pressure
         if self.pressure == 'buy_pressure':
             score += 0.5; reason.append('BuyPres')
         if self.pressure == 'sell_pressure':
             score -= 0.5; reason.append('SellPres')
 
-        # Teknik indikatörler (1h & 15m)
+        # Teknik indikatörler (1h ve 15m)
         r1, m1, s1 = self.tech['rsi_1h'], self.tech['macd_1h'], self.tech['macd_signal_1h']
         if r1 is not None:
-            if r1 < settings.RSI_OVERSOLD:    score += 0.7; reason.append('RSI1hOS')
-            elif r1 > settings.RSI_OVERBOUGHT: score -= 0.7; reason.append('RSI1hOB')
+            if r1 < settings.RSI_OVERSOLD:    
+                score += 0.7; reason.append('RSI1hOS')
+            elif r1 > settings.RSI_OVERBOUGHT:
+                score -= 0.7; reason.append('RSI1hOB')
         if m1 is not None and s1 is not None:
             score += (0.5 if m1 > s1 else -0.5); reason.append('MACD1h')
 
         r15, m15, s15 = self.tech['rsi_15m'], self.tech['macd_15m'], self.tech['macd_signal_15m']
         if r15 is not None:
-            if r15 < settings.RSI_OVERSOLD:    score += 0.3; reason.append('RSI15mOS')
-            elif r15 > settings.RSI_OVERBOUGHT: score -= 0.3; reason.append('RSI15mOB')
+            if r15 < settings.RSI_OVERSOLD:
+                score += 0.3; reason.append('RSI15mOS')
+            elif r15 > settings.RSI_OVERBOUGHT:
+                score -= 0.3; reason.append('RSI15mOB')
         if m15 is not None and s15 is not None:
             score += (0.3 if m15 > s15 else -0.3); reason.append('MACD15m')
 
@@ -174,7 +178,7 @@ class Strategy:
         score += self.sentiment * 0.2; reason.append('Sentiment')
         score += self.onchain   * 0.2; reason.append('OnChain')
 
-        # Volatilite scaling
+        # ATR bazlı volatilite scaling
         atr = self.tech['atr']
         if atr is not None and atr < settings.ATR_MIN_VOL:
             score *= 0.5; reason.append('LowVol')
@@ -190,11 +194,11 @@ class Strategy:
                 action = 'HOLD'
 
         # Stealth jitter
-        if action in ['BUY', 'SELL'] and random.random() < settings.TRADE_DROP_CHANCE:
+        if action in ['BUY','SELL'] and random.random() < settings.TRADE_DROP_CHANCE:
             reason.append('JitterDrop')
             action = 'HOLD'
 
-        # Pozisyon açma/kapatma kaydı
+        # Pozisyon açıldıysa kaydet, kapatıldıysa sil
         if action == 'BUY' and self.symbol not in self.position_open_time:
             self.position_open_time[self.symbol] = datetime.utcnow()
         elif action == 'SELL' and self.symbol in self.position_open_time:
