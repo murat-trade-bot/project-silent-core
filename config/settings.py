@@ -24,9 +24,9 @@ NEWS_API_KEY       = _get_env("NEWS_API_KEY", default="")
 TELEGRAM_TOKEN     = _get_env("TELEGRAM_TOKEN", default="")
 TELEGRAM_CHAT_ID   = _get_env("TELEGRAM_CHAT_ID", default="")
 
-# --- Global Target ---
-# Orijinal hedef sermaye (global) .env üzerinden yüklenir ve güncellenmez.
+# --- Global Target (alias for backward compatibility) ---
 GLOBAL_TARGET_USDT = float(_get_env("TARGET_USDT", "3580122"))
+TARGET_USDT        = GLOBAL_TARGET_USDT
 
 # --- Dynamic Altcoin Selection Flag ---
 USE_DYNAMIC_SYMBOL_SELECTION = _get_env("USE_DYNAMIC_SYMBOL_SELECTION", "True").lower() in ("true","1","yes")
@@ -45,9 +45,17 @@ if USE_DYNAMIC_SYMBOL_SELECTION:
         ]
     except Exception as e:
         print(f"Dynamic symbol selection failed: {e}")
-        SYMBOLS = [s.strip() for s in _get_env("SYMBOLS", "BTCUSDT,ETHUSDT,BNBUSDT").split(",") if s.strip()]
+        SYMBOLS = [
+            s.strip()
+            for s in _get_env("SYMBOLS", "BTCUSDT,ETHUSDT,BNBUSDT").split(",")
+            if s.strip()
+        ]
 else:
-    SYMBOLS = [s.strip() for s in _get_env("SYMBOLS", "BTCUSDT,ETHUSDT,BNBUSDT").split(",") if s.strip()]
+    SYMBOLS = [
+        s.strip()
+        for s in _get_env("SYMBOLS", "BTCUSDT,ETHUSDT,BNBUSDT").split(",")
+        if s.strip()
+    ]
 
 # --- Trading Mode Flags (Test & Live) ---
 TESTNET_MODE  = _get_env("TESTNET_MODE", "True").lower() in ("true","1","yes")
@@ -60,7 +68,7 @@ CYCLE_JITTER_MAX   = int(_get_env("CYCLE_JITTER_MAX", "0"))
 MAX_RETRIES        = int(_get_env("MAX_RETRIES", "5"))
 RETRY_WAIT_TIME    = int(_get_env("RETRY_WAIT_TIME", "5"))
 
-# --- Stealth Mode Parameters (disabled) ---
+# --- Stealth Mode Parameters (disabled by default) ---
 STEALTH_DROP_CHANCE       = 0.0
 STEALTH_SLEEP_CHANCE      = 0.0
 STEALTH_SLEEP_MIN         = 0
@@ -171,8 +179,7 @@ TAKE_PROFIT_RATIO   = float(_get_env("TAKE_PROFIT_RATIO", "0.10"))
 MAX_DRAWDOWN_PCT    = float(_get_env("MAX_DRAWDOWN_PCT", "0.20"))
 TRADE_USDT_AMOUNT   = float(_get_env("TRADE_USDT_AMOUNT", "20"))
 
-# --- Period-based Targets ---
-# Periyodik hedef, update_settings_for_period() ile güncelleniyor
+# --- Period-based Targets (updated at runtime) ---
 PERIOD_TARGET_USDT = None
 
 # --- Initial Balance ---
@@ -188,7 +195,7 @@ NOTIFIER_ENABLED               = _get_env("NOTIFIER_ENABLED", "True").lower() in
 ANTIBINANCE_TESPIT_ENABLED     = _get_env("ANTIBINANCE_TESPIT_ENABLED", "True").lower() in ("true","1","yes")
 
 # --- Proxy Settings ---
-USE_PROXY        = _get_env("USE_PROXY", "False").lower() in ("true","1","yes")
-PROXY_LIST_PATH  = _get_env("PROXY_LIST_PATH", "proxy_list.txt")
-API_TIMEOUT      = int(_get_env("API_TIMEOUT", "10"))
-PROXY_TIMEOUT    = int(_get_env("PROXY_TIMEOUT", "15"))
+USE_PROXY       = _get_env("USE_PROXY", "False").lower() in ("true","1","yes")
+PROXY_LIST_PATH = _get_env("PROXY_LIST_PATH", "proxy_list.txt")
+API_TIMEOUT     = int(_get_env("API_TIMEOUT", "10"))
+PROXY_TIMEOUT   = int(_get_env("PROXY_TIMEOUT", "15"))
