@@ -1,11 +1,13 @@
 import requests
 import time
-import json
 import random
+import json
 from datetime import datetime, timedelta
 from core.logger import BotLogger
 from anti_binance_tespit import anti_detection
-from config import settings  # eklendi
+from config import settings
+from modules.technical_analysis import fetch_ohlcv_from_binance, calculate_rsi
+from modules.domino_effect import detect_domino_effect
 
 logger = BotLogger()
 
@@ -32,164 +34,148 @@ RECOMMENDED_CATEGORIES = {
 
 class AssetSelector:
     def __init__(self):
+        # Cache
         self.cache = {}
-        self.cache_expiry = 3600  # 1 saat
-        self.min_volume_usdt = 10_000_000   # 10 milyon USDT
-        self.min_market_cap_usdt = 100_000_000  # 100 milyon USDT
-        self.max_assets = 5  # Maksimum seçilecek varlık sayısı
-        
+        self.cache_expiry = getattr(settings, 'ASSET_CACHE_EXPIRY', 3600)  # saniye
+        # Settings
+        self.min_volume_usdt     = getattr(settings, 'MIN_VOLUME_USDT', 10_000_000)
+        self.min_market_cap_usdt = getattr(settings, 'MIN_MARKET_CAP_USDT', 100_000_000)
+        self.max_assets          = getattr(settings, 'MAX_ASSETS', 5)
+
     def get_cached_assets(self):
         """Önbellekten varlık listesini alır"""
-        if "assets" in self.cache:
-            timestamp, value = self.cache["assets"]
-            if datetime.now().timestamp() - timestamp < self.cache_expiry:
-                return value
+        entry = self.cache.get('assets')
+        if not entry:
+            return None
+        ts, assets = entry
+        if datetime.now().timestamp() - ts < self.cache_expiry:
+            return assets
         return None
-        
+
     def cache_assets(self, assets):
         """Varlık listesini önbelleğe alır"""
-        self.cache["assets"] = (datetime.now().timestamp(), assets)
-        
+        self.cache['assets'] = (datetime.now().timestamp(), assets)
+
     def get_all_symbols(self):
-        """Tüm sembolleri alır"""
+        """Tüm USDT çiftlerini Binance API'den alır"""
         try:
             anti_detection.check_rate_limit()
             url = "https://api.binance.com/api/v3/exchangeInfo"
             headers = {"User-Agent": anti_detection.get_random_user_agent()}
             proxies = anti_detection.get_next_proxy()
-            
-            response = requests.get(url, headers=headers, proxies=proxies, timeout=10)
-            if response.status_code == 200:
-                data = response.json()
-                symbols = []
-                for info in data.get("symbols", []):
-                    if info.get("status") == "TRADING" and info.get("quoteAsset") == "USDT":
-                        symbols.append(info.get("symbol"))
-                return symbols
-            return []
+            resp = requests.get(url, headers=headers, proxies=proxies, timeout=10)
+            data = resp.json() if resp.status_code == 200 else {}
+            return [s['symbol'] for s in data.get('symbols', [])
+                    if s.get('status') == 'TRADING' and s.get('quoteAsset') == 'USDT']
         except Exception as e:
-            logger.log(f"[ASSET] Sembol listesi hatası: {e}", level="ERROR")
+            logger.log(f"[ASSET] get_all_symbols error: {e}", level="ERROR")
             return []
-            
+
     def get_24h_stats(self, symbols):
         """24 saatlik istatistikleri alır"""
+        stats = {}
         try:
             anti_detection.check_rate_limit()
             url = "https://api.binance.com/api/v3/ticker/24hr"
             headers = {"User-Agent": anti_detection.get_random_user_agent()}
             proxies = anti_detection.get_next_proxy()
-            
-            stats = {}
-            for symbol in symbols:
-                params = {"symbol": symbol}
-                resp = requests.get(url, params=params, headers=headers, proxies=proxies, timeout=10)
+            for sym in symbols:
+                resp = requests.get(url, params={'symbol': sym}, headers=headers, proxies=proxies, timeout=5)
                 if resp.status_code == 200:
                     d = resp.json()
-                    stats[symbol] = {
-                        "volume": float(d.get("volume", 0)),
-                        "quoteVolume": float(d.get("quoteVolume", 0)),
-                        "priceChangePercent": float(d.get("priceChangePercent", 0)),
-                        "count": int(d.get("count", 0))
+                    stats[sym] = {
+                        'quoteVolume': float(d.get('quoteVolume', 0)),
+                        'priceChangePercent': float(d.get('priceChangePercent', 0)),
+                        'count': int(d.get('count', 0))
                     }
-                time.sleep(0.1)
-            return stats
+                time.sleep(0.05)
         except Exception as e:
-            logger.log(f"[ASSET] 24h istatistikleri hatası: {e}", level="ERROR")
-            return {}
-            
+            logger.log(f"[ASSET] get_24h_stats error: {e}", level="ERROR")
+        return stats
+
     def get_market_caps(self, symbols):
-        """Piyasa değerlerini alır"""
+        """Basit piyasa değeri tahmini"""
+        caps = {}
         try:
             anti_detection.check_rate_limit()
             url = "https://api.binance.com/api/v3/ticker/price"
             headers = {"User-Agent": anti_detection.get_random_user_agent()}
             proxies = anti_detection.get_next_proxy()
-            
-            caps = {}
-            for symbol in symbols:
-                params = {"symbol": symbol}
-                resp = requests.get(url, params=params, headers=headers, proxies=proxies, timeout=10)
+            for sym in symbols:
+                resp = requests.get(url, params={'symbol': sym}, headers=headers, proxies=proxies, timeout=5)
                 if resp.status_code == 200:
-                    price = float(resp.json().get("price", 0))
-                    supply = random.uniform(1_000_000, 100_000_000)
-                    caps[symbol] = price * supply
-                time.sleep(0.1)
-            return caps
+                    price = float(resp.json().get('price', 0))
+                    # Not: gerçek circulating supply yok, rastgele tahmin
+                    supply = random.uniform(1e6, 1e8)
+                    caps[sym] = price * supply
+                time.sleep(0.05)
         except Exception as e:
-            logger.log(f"[ASSET] Piyasa değeri hatası: {e}", level="ERROR")
-            return {}
-            
-    def calculate_volatility(self, symbol):
-        """Volatilite hesaplar"""
-        try:
-            anti_detection.check_rate_limit()
-            url = "https://api.binance.com/api/v3/klines"
-            params = {"symbol": symbol, "interval": "1h", "limit": 24}
-            headers = {"User-Agent": anti_detection.get_random_user_agent()}
-            proxies = anti_detection.get_next_proxy()
-            
-            resp = requests.get(url, params=params, headers=headers, proxies=proxies, timeout=10)
-            if resp.status_code == 200:
-                data = resp.json()
-                if len(data) >= 24:
-                    closes = [float(c[4]) for c in data]
-                    return (max(closes) - min(closes)) / min(closes) * 100
-            return 0
-        except Exception as e:
-            logger.log(f"[ASSET] Volatilite hesaplama hatası: {e}", level="ERROR")
-            return 0
-            
-    def score_assets(self, symbols, stats, market_caps):
-        """Varlıkları puanlar"""
-        scores = {}
-        for s in symbols:
-            if s not in stats or s not in market_caps:
+            logger.log(f"[ASSET] get_market_caps error: {e}", level="ERROR")
+        return caps
+
+    def score_and_filter(self, symbols, stats, caps):
+        """Sembol puanlama ve RSI/domino filtresi"""
+        scored = []
+        for sym in symbols:
+            vol = stats.get(sym, {}).get('quoteVolume', 0)
+            cap = caps.get(sym, 0)
+            if vol < self.min_volume_usdt or cap < self.min_market_cap_usdt:
                 continue
-            stat = stats[s]; cap = market_caps[s]
-            if stat["quoteVolume"] < self.min_volume_usdt or cap < self.min_market_cap_usdt:
+            # Score hesapla
+            score = (vol / self.min_volume_usdt) * 10
+            score += min(20, cap / self.min_market_cap_usdt * 10)
+            score += stats[sym].get('count', 0) / 1000
+            # RSI ve domino kontrolü
+            try:
+                ohlcv = fetch_ohlcv_from_binance(sym, '1h', limit=14)
+                rsi = calculate_rsi([c[4] for c in ohlcv])[-1]
+                if not (settings.RSI_OVERSOLD < rsi < settings.RSI_OVERBOUGHT):
+                    continue
+                if detect_domino_effect(sym):
+                    continue
+            except Exception:
                 continue
-            vol = self.calculate_volatility(s)
-            score = min(30, stat["quoteVolume"]/self.min_volume_usdt*10)
-            score += min(20, cap/self.min_market_cap_usdt*10)
-            score += min(10, stat["count"]/1000)
-            score += min(20, vol*2)
-            score += min(20, abs(stat["priceChangePercent"]))
-            scores[s] = score
-        return scores
-        
+            scored.append((sym, score))
+        # Puanlara göre sırala
+        scored.sort(key=lambda x: x[1], reverse=True)
+        return [s for s, _ in scored]
+
     def select_coins(self):
-        """En iyi varlıkları seçer"""
-        # Eğer dinamik seçim kapalıysa, statik önerilen listeyi kullan
+        """En iyi varlıkları döner"""
+        # Statik liste kullan
         if not settings.USE_DYNAMIC_SYMBOL_SELECTION:
-            return RECOMMENDED_COINS
+            pool = RECOMMENDED_COINS.copy()
+            random.shuffle(pool)
+            return pool[:self.max_assets]
 
-        # Önbellekten kontrol et
+        # Önbellek kontrolü
         cached = self.get_cached_assets()
-        if cached is not None:
+        if cached:
             return cached
-
-        # Dinamik seçim akışı
-        all_syms = self.get_all_symbols()
-        if not all_syms:
-            return ["BTCUSDT"]
-        stats = self.get_24h_stats(all_syms)
+        # Dinamik akış
+        syms = self.get_all_symbols()
+        if not syms:
+            return RECOMMENDED_COINS[:self.max_assets]
+        stats = self.get_24h_stats(syms)
         if not stats:
-            return ["BTCUSDT"]
-        caps = self.get_market_caps(all_syms)
+            return RECOMMENDED_COINS[:self.max_assets]
+        caps = self.get_market_caps(syms)
         if not caps:
-            return ["BTCUSDT"]
-        scored = self.score_assets(all_syms, stats, caps)
-        # En yüksek puanlıları seç
-        top = sorted(scored.items(), key=lambda x: x[1], reverse=True)[:self.max_assets]
-        sel = [sym for sym, _ in top]
-        if "BTCUSDT" not in sel:
-            sel.append("BTCUSDT")
-        self.cache_assets(sel)
-        return sel
+            return RECOMMENDED_COINS[:self.max_assets]
+        candidates = self.score_and_filter(syms, stats, caps)
+        # İlk max_assets adedekini al
+        selected = candidates[:self.max_assets]
+        # Her zaman en az bir BTC olsun
+        if "BTCUSDT" not in selected:
+            selected[-1] = "BTCUSDT"
+        random.shuffle(selected)
+        # Önbelleğe kaydet
+        self.cache_assets(selected)
+        return selected
 
 # Global instance
 asset_selector = AssetSelector()
 
 def select_coins():
-    """Dışa açık fonksiyon"""
+    """Bot döngüsünden çağrılacak"""
     return asset_selector.select_coins()
