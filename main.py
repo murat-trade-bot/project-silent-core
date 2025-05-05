@@ -3,85 +3,73 @@ import time
 import random
 import csv
 from datetime import datetime, timedelta
+from dotenv import load_dotenv
+from binance.client import Client
+from binance.exceptions import BinanceAPIException
 
 from config import settings
 from core.logger import BotLogger
 from core.strategy import Strategy
 from core.executor import ExecutorManager
-from modules.time_strategy import get_current_strategy_mode
-from modules.global_risk_index import GlobalRiskAnalyzer
-from smart_entry.orderbook_analyzer import OrderBookAnalyzer
-from security.stealth_mode import stealth
-from modules.technical_analysis import (
-    fetch_ohlcv_from_binance, calculate_rsi,
-    calculate_macd, calculate_atr
-)
-from modules.sentiment_analysis import analyze_sentiment
-from modules.onchain_tracking import track_onchain_activity
 from modules.dynamic_position import get_dynamic_position_size
 from modules.strategy_optimizer import optimize_strategy_parameters
-from modules.domino_effect import detect_domino_effect
 from modules.multi_asset_selector import select_coins
-from modules.performance_optimization import optimize_performance_infrastructure
-from modules.period_manager import update_settings_for_period, perform_period_withdrawal
-from notifier import send_notification  # ← Telegram bildirimini ekledik
+from modules.period_manager import update_settings_for_period
+from notifier import send_notification
 
 logger = BotLogger()
-executor = ExecutorManager()
 
-# --- Başlangıç Ayarları ---
-START_TIME = time.time()
-HEARTBEAT_INTERVAL = 3600  # saniye
-CSV_FILE = settings.CSV_LOG_FILE
+# Load environment variables
+load_dotenv()
+API_KEY = os.getenv('BINANCE_API_KEY', '')
+API_SECRET = os.getenv('BINANCE_API_SECRET', '')
+TESTNET_MODE = os.getenv('TESTNET_MODE', 'False').lower() == 'true'
+PAPER_TRADING = os.getenv('PAPER_TRADING', 'True').lower() == 'true'
 
-# --- Orijinal Temel Pozisyon Boyutları ---
-BASE_POSITION_PCT      = settings.POSITION_SIZE_PCT
-BASE_TRADE_USDT_AMOUNT = getattr(settings, "TRADE_USDT_AMOUNT", None)
+# Initialize Binance Client
+client = Client(API_KEY, API_SECRET)
+if TESTNET_MODE:
+    client.API_URL = 'https://testnet.binance.vision/api'
+    logger.info('Testnet mode enabled')
+else:
+    logger.info('Live mode enabled')
 
-# --- İstatistik Değişkenleri (USDT + XRP + BNB Bakiyesi) ---
-try:
-    usdt_bal = executor.get_balance('USDT')
-    xrp_bal  = executor.get_balance('XRP')
-    bnb_bal  = executor.get_balance('BNB')
-    try:
-        xrp_price = float(executor.client.get_symbol_ticker(symbol='XRPUSDT')['price'])
-        bnb_price = float(executor.client.get_symbol_ticker(symbol='BNBUSDT')['price'])
-    except Exception:
-        xrp_price = fetch_ohlcv_from_binance('XRPUSDT', '1m', limit=1)[-1][4]
-        bnb_price = fetch_ohlcv_from_binance('BNBUSDT', '1m', limit=1)[-1][4]
-    start_balance = usdt_bal + xrp_bal * xrp_price + bnb_bal * bnb_price
-except Exception:
-    start_balance = executor.get_balance('USDT')
-
-total_trades    = 0
-win_trades      = 0
-loss_trades     = 0
-trade_durations = []
-peak_balance    = start_balance
-max_drawdown    = 0.0
-
-# Başlangıçta dönemi yükleyip loglayalım
+# Optimize strategy parameters and initial period
+optimize_strategy_parameters()
 period = update_settings_for_period()
 logger.info(
-    f"[PERIOD] Başlangıçta Aktif dönem: {period['name']} | "
-    f"Hedef={period['target_balance']:.2f} USDT | "
+    f"[PERIOD] Active period: {period['name']} | "
+    f"Target={period['target_balance']:.2f} USDT | "
     f"TP={period['take_profit_ratio']:.2f} | "
     f"SL={period['stop_loss_ratio']:.2f} | "
-    f"Growth={period['growth_factor']}"
+    f"Growth={period.get('growth_factor', 1.0)}"
 )
 
-print(f"Bot Başlatıldı:      {datetime.utcnow()} UTC")
-print(f"Başlangıç Portföy Değeri: {start_balance:.2f} USDT (USDT+XRP+BNB)")
-print(f"Hedef Sermaye:       {settings.TARGET_USDT:.2f} USDT")
+# Initialize core components
+strategy = Strategy()
+executor = ExecutorManager(client)
 
+# Initial balance metrics
+try:
+    usdt_bal = float(executor.client.get_asset_balance('USDT')['free'])
+except Exception:
+    usdt_bal = executor.get_balance('USDT')
+start_balance = usdt_bal
+peak_balance = start_balance
+max_drawdown = 0.0
 
-def log_trade_csv(trade: dict):
-    """
-    Append a trade record to CSV_FILE with header if not exists.
-    """
+total_trades = 0
+win_trades = 0
+loss_trades = 0
+trade_durations = []
+
+logger.info(f"Bot started at {datetime.utcnow()} UTC | Start balance: {start_balance:.2f} USDT")
+
+# CSV logger
+def log_trade_csv(trade):
     fieldnames = ['timestamp', 'symbol', 'action', 'quantity', 'price', 'pnl']
-    exists = os.path.isfile(CSV_FILE)
-    with open(CSV_FILE, 'a', newline='') as f:
+    exists = os.path.isfile(settings.CSV_LOG_FILE)
+    with open(settings.CSV_LOG_FILE, 'a', newline='') as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         if not exists:
             writer.writeheader()
@@ -90,208 +78,78 @@ def log_trade_csv(trade: dict):
             'symbol':    trade['symbol'],
             'action':    trade['action'],
             'quantity':  trade['quantity'],
-            'price':     trade['price'],
+            'price':     trade.get('exit_price', trade.get('price')),
             'pnl':       trade['pnl']
         })
 
-
-def run_bot_cycle(symbol):
-    global start_balance
-
-    # --- Eğer zaten açık pozisyon varsa atla ---
-    base_asset = symbol.replace("USDT", "")
-    if executor.get_balance(base_asset) > 0:
-        logger.log(f"[EXECUTOR] {symbol} pozisyonu zaten açık, atlanıyor.", level="INFO")
-        return None
-
-    cycle_start = time.time()
-
-    # (0) İnsanvari gecikme
-    time.sleep(random.uniform(2, 10))
-    logger.log(f"[CYCLE] {symbol} için döngü başlıyor.", level="INFO")
-
-    try:
-        # (1) Stealth
-        stealth.maybe_enter_sleep()
-
-        # (2) Zaman stratejisi
-        current_mode = get_current_strategy_mode()
-
-        # (3) Küresel risk analizi
-        risk_level = GlobalRiskAnalyzer().evaluate_risk_level()
-
-        # (4) Liquidity pressure (opsiyonel)
-        pressure = 'neutral'
-
-        # --- Teknik Analiz Verileri ---
-        ohlcv_15m = fetch_ohlcv_from_binance(symbol, "15m", limit=50)
-        prices_15m = [c[4] for c in ohlcv_15m]
-        rsi_15m    = calculate_rsi(prices_15m)[-1] if prices_15m else None  # ← DEĞİŞTİRİLDİ
-        macd_15m, macd_signal_15m = calculate_macd(prices_15m)
-        atr = calculate_atr(ohlcv_15m)
-
-        # --- (XRP/BNB için RSI filtre) ---
-        if symbol.endswith('XRPUSDT') or symbol.endswith('BNBUSDT'):              # ← DEĞİŞTİRİLDİ
-            if rsi_15m is None or rsi_15m < 40 or rsi_15m > 60:                  # ← DEĞİŞTİRİLDİ
-                logger.log(f"[FILTER] {symbol} RSI={rsi_15m}, atlanıyor.", level="INFO")  # ← DEĞİŞTİRİLDİ
-                return None                                                      # ← DEĞİŞTİRİLDİ
-
-        ohlcv_1h = fetch_ohlcv_from_binance(symbol, "1h", limit=50)
-        prices_1h = [c[4] for c in ohlcv_1h]
-        rsi_1h    = calculate_rsi(prices_1h)[-1] if prices_1h else None
-        macd_1h, macd_signal_1h = calculate_macd(prices_1h)
-
-        macd_15m_last        = macd_15m[-1]        if len(macd_15m)        > 0 else None
-        macd_signal_15m_last = macd_signal_15m[-1] if len(macd_signal_15m) > 0 else None
-        macd_1h_last         = macd_1h[-1]         if len(macd_1h)         > 0 else None
-        macd_signal_1h_last  = macd_signal_1h[-1]  if len(macd_signal_1h)  > 0 else None
-
-        # --- Bakiye ve PnL hesaplama ---
-        current_balance = executor.get_balance('USDT')
-        current_pnl     = current_balance - start_balance
-
-        # --- Dönem Parametrelerini Çek ve Logla ---
-        period = update_settings_for_period()
-        logger.info(
-            f"[PERIOD] Döngü başında Aktif dönem: {period['name']} | "
-            f"Hedef={period['target_balance']:.2f} USDT | "
-            f"TP={period['take_profit_ratio']:.2f} | "
-            f"SL={period['stop_loss_ratio']:.2f} | "
-            f"Growth={period['growth_factor']}"
-        )
-
-        growth_factor = period.get("growth_factor", 1.0)
-        tp_ratio      = period.get("take_profit_ratio", settings.TAKE_PROFIT_RATIO)
-        sl_ratio      = period.get("stop_loss_ratio", settings.STOP_LOSS_RATIO)
-
-        # --- Dinamik Pozisyon Büyüklüğünü Ayarla ---
-        settings.POSITION_SIZE_PCT = BASE_POSITION_PCT * growth_factor
-        if BASE_TRADE_USDT_AMOUNT is not None:
-            settings.TRADE_USDT_AMOUNT = BASE_TRADE_USDT_AMOUNT * growth_factor
-
-        # --- Strateji ve Karar ---
-        strategy = Strategy()
-        strategy.update_context(
-            symbol=symbol,
-            mode=current_mode,
-            risk=risk_level,
-            pressure=pressure,
-            rsi_15m=rsi_15m,
-            macd_15m=macd_15m_last,
-            macd_signal_15m=macd_signal_15m_last,
-            rsi_1h=rsi_1h,
-            macd_1h=macd_1h_last,
-            macd_signal_1h=macd_signal_1h_last,
-            atr=atr,
-            growth_factor=growth_factor,
-            take_profit_ratio=tp_ratio,
-            stop_loss_ratio=sl_ratio
-        )
-        decision = strategy.decide_trade(current_balance, current_pnl)
-        action   = decision.get("action")
-
-        # (5) Stealth drop
-        if stealth.maybe_drop_trade():
-            logger.log(f"[STEALTH] {symbol} işlemi iptal edildi.", level="WARNING")
-            return None
-
-        # (6) Emir yürütme
-        trade_result = executor.manage_position(symbol, action)
-        return {
-            'symbol':    symbol,
-            'action':    trade_result.get('action'),
-            'quantity':  trade_result.get('quantity'),
-            'price':     trade_result.get('price'),
-            'pnl':       trade_result.get('pnl'),
-            'timestamp': datetime.utcnow(),
-            'duration':  time.time() - cycle_start
-        }
-
-    except Exception as e:
-        logger.log(f"[ERROR] Döngü hatası ({symbol}): {e}", level="ERROR")
-        return None
-
-
+# Metrics printer
 def print_metrics():
     global peak_balance, max_drawdown
-
-    # --- Portföy değerini USD cinsinden hesapla ---
-    curr_usdt = executor.get_balance('USDT')
     try:
-        xrp_price = float(executor.client.get_symbol_ticker(symbol='XRPUSDT')['price'])
-        bnb_price = float(executor.client.get_symbol_ticker(symbol='BNBUSDT')['price'])
+        curr_balance = float(executor.client.get_asset_balance('USDT')['free'])
     except Exception:
-        xrp_price = fetch_ohlcv_from_binance('XRPUSDT', '1m', limit=1)[-1][4]
-        bnb_price = fetch_ohlcv_from_binance('BNBUSDT', '1m', limit=1)[-1][4]
-    curr_xrp = executor.get_balance('XRP') * xrp_price
-    curr_bnb = executor.get_balance('BNB') * bnb_price
-
-    curr_balance = curr_usdt + curr_xrp + curr_bnb
-
-    # --- Drawdown ve diğer hesaplamalar ---
+        curr_balance = executor.get_balance('USDT')
     peak_balance = max(peak_balance, curr_balance)
-    drawdown     = peak_balance - curr_balance
+    drawdown = peak_balance - curr_balance
     max_drawdown = max(max_drawdown, drawdown)
-    pnl_pct      = ((curr_balance - start_balance) / start_balance * 100) if start_balance else 0
-    progress_pct = (curr_balance / settings.TARGET_USDT * 100)
-    avg_dur      = (sum(trade_durations) / len(trade_durations)) if trade_durations else 0
-    win_rate     = (win_trades / total_trades * 100) if total_trades else 0
+    pnl_pct = (curr_balance - start_balance)/start_balance*100 if start_balance else 0
+    progress_pct = (curr_balance/settings.TARGET_USDT)*100 if settings.TARGET_USDT else 0
+    avg_dur = (sum(trade_durations)/len(trade_durations)) if trade_durations else 0
+    win_rate = (win_trades/total_trades*100) if total_trades else 0
+    print(f"Balance: {curr_balance:.2f} USDT | PnL%: {pnl_pct:+.2f}% | Progress%: {progress_pct:.2f}%")
+    print(f"Trades: {total_trades} | Wins: {win_trades} ({win_rate:.1f}%) | Max Drawdown: {max_drawdown:.2f} | Avg Dur: {avg_dur:.1f}s")
 
-    print(f"Anlık Portföy Değeri: {curr_balance:.2f} USDT "
-          f"(USDT:{curr_usdt:.2f}, XRP:{curr_xrp:.2f}, BNB:{curr_bnb:.2f})")
-    print(f"Toplam PnL:          {(curr_balance - start_balance):.2f} USDT ({pnl_pct:+.2f}%)")
-    print(f"Hedefe Progress:     {progress_pct:.4f}%")
-    print(f"Toplam İşlem:        {total_trades}  Kazanan: {win_trades}  ({win_rate:.1f}%)")
-    print(f"Max Drawdown:        {max_drawdown:.2f} USDT")
-    print(f"Ortalama Trade Süre: {avg_dur:.1f}s")
-
-
-if __name__ == "__main__":
-    optimize_strategy_parameters()
-
-    retry_count    = 0
-    last_heartbeat = START_TIME
-
+if __name__ == '__main__':
+    last_heartbeat = time.time()
     while True:
-        _ = update_settings_for_period()
+        # Refresh period settings
+        period = update_settings_for_period()
+        # Dynamic symbol selection or fallback to settings.SYMBOLS
+        symbols = select_coins() if getattr(settings, 'USE_DYNAMIC_SYMBOL_SELECTION', False) else settings.SYMBOLS
+        if not symbols:
+            symbols = settings.SYMBOLS
 
-        if settings.USE_DYNAMIC_SYMBOL_SELECTION:
-            symbols_to_trade = select_coins() or settings.SYMBOLS
-        else:
-            symbols_to_trade = settings.SYMBOLS
+        for symbol in symbols:
+            cycle_start = time.time()
+            try:
+                action = strategy.decide(symbol)
+                trade_amount = settings.TRADE_USDT_AMOUNT
+                if getattr(settings, 'USE_DYNAMIC_POSITION', False):
+                    trade_amount = get_dynamic_position_size(symbol, trade_amount)
 
-        for symbol in symbols_to_trade:
-            result = run_bot_cycle(symbol)
-            if result:
-                total_trades += 1
-                if result['pnl'] >= 0:
-                    win_trades += 1
-                else:
-                    loss_trades += 1
-                trade_durations.append(result['duration'])
+                if action == 'BUY':
+                    executor.buy(symbol, trade_amount)
+                elif action == 'SELL':
+                    executor.sell(symbol)
+                # HOLD → no action
 
-                print(
-                    f"{result['timestamp']} - {result['symbol']} "
-                    f"{result['action']} {result['quantity']} @ {result['price']} → "
-                    f"PnL: {result['pnl']:+.2f} USDT"
-                )
+                # If a position closed, log and notify
+                closed = executor.get_closed_positions()
+                if closed:
+                    trade = closed[-1]
+                    trade['timestamp'] = datetime.utcnow()
+                    trade['duration'] = time.time() - cycle_start
+                    total_trades += 1
+                    if trade['pnl'] >= 0:
+                        win_trades += 1
+                    else:
+                        loss_trades += 1
+                    log_trade_csv(trade)
+                    print(f"{trade['timestamp']} | {trade['symbol']} {trade['action']} {trade['quantity']} @ {trade['exit_price']:.2f} | PnL {trade['pnl']:+.2f}")
+                    if getattr(settings, 'NOTIFIER_ENABLED', False):
+                        send_notification(f"Trade {trade['action']} {trade['symbol']} PnL {trade['pnl']:+.2f}")
+                    trade_durations.append(trade['duration'])
+                    print_metrics()
 
-                if settings.NOTIFIER_ENABLED:
-                    msg = (
-                        f"İşlem: {result['action']} {result['symbol']} "
-                        f"@ {result['price']:.2f} USD, PnL: {result['pnl']:+.2f} USDT"
-                    )
-                    send_notification(msg)
+            except BinanceAPIException as e:
+                logger.info(f"API error in cycle {symbol}: {e}")
+            except Exception as e:
+                logger.info(f"Error in cycle {symbol}: {e}")
 
-                log_trade_csv(result)
-                print_metrics()
+            time.sleep(settings.CYCLE_INTERVAL + random.randint(settings.CYCLE_JITTER_MIN, settings.CYCLE_JITTER_MAX))
 
-            if time.time() - last_heartbeat >= HEARTBEAT_INTERVAL:
-                uptime = timedelta(seconds=int(time.time() - START_TIME))
-                print(f"[HEARTBEAT] Bot canlı, uptime: {uptime}")
-                last_heartbeat = time.time()
-
-            time.sleep(
-                settings.CYCLE_INTERVAL +
-                random.randint(settings.CYCLE_JITTER_MIN, settings.CYCLE_JITTER_MAX)
-            )
+        # Heartbeat log
+        if time.time() - last_heartbeat >= settings.HEARTBEAT_INTERVAL:
+            uptime = timedelta(seconds=int(time.time() - last_heartbeat))
+            logger.info(f"[HEARTBEAT] Uptime: {uptime}")
+            last_heartbeat = time.time()
