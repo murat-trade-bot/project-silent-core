@@ -1,5 +1,3 @@
-# core/strategy.py
-
 import random
 from datetime import datetime, timedelta
 
@@ -8,49 +6,35 @@ from modules.time_strategy import get_current_strategy_mode
 from core.logger import BotLogger
 from modules.sentiment_analysis import analyze_sentiment
 from modules.onchain_tracking import track_onchain_activity
+from modules.technical_analysis import (
+    fetch_ohlcv_from_binance, calculate_rsi, calculate_sma
+)
+from core.risk_manager import RiskManager
 
 logger = BotLogger()
 
 class Strategy:
     """
-    Enhanced decision engine combining multi-timeframe technicals,
-    sentiment & on-chain signals, regime detection via period targets,
-    and dynamic risk management for fully autonomous trading.
+    Decision engine with trend filters, technicals, sentiment/on-chain signals,
+    dynamic risk sizing, SL/TP/OCO via RiskManager, and drawdown protection.
     """
     MIN_HOLD_TIME = timedelta(minutes=5)
 
     def __init__(self):
-        # Pozisyon açılma zamanlarını tutar (symbol → datetime)
         self.position_open_time = {}
-        # Context ve dönem parametrelerini hazırla
         self.reset()
 
     def reset(self):
-        # Sadece context bilgisini sıfırlar (pozisyon zamanları korunur)
         self.symbol = None
         self.mode = None
         self.risk = None
         self.pressure = None
-
-        # Teknik analiz sinyalleri
-        self.tech = {
-            'rsi_15m': None,
-            'macd_15m': None,
-            'macd_signal_15m': None,
-            'rsi_1h': None,
-            'macd_1h': None,
-            'macd_signal_1h': None,
-            'atr': None
-        }
-
-        # Duygu ve on-chain
+        self.tech = {}
         self.sentiment = 0.0
         self.onchain = 0.0
-
-        # Dönem parametreleri (ana ayarlardan gelen varsayılanlar)
-        self.growth_factor = 1.0                      # main.py’den gelen growth_factor
-        self.tp_ratio      = settings.TAKE_PROFIT_RATIO  # main.py’den gelen tp_ratio
-        self.sl_ratio      = settings.STOP_LOSS_RATIO    # main.py’den gelen sl_ratio
+        self.growth_factor = 1.0
+        self.tp_ratio = settings.TAKE_PROFIT_RATIO
+        self.sl_ratio = settings.STOP_LOSS_RATIO
 
     def update_context(
         self,
@@ -65,153 +49,114 @@ class Strategy:
         macd_1h=None,
         macd_signal_1h=None,
         atr=None,
-        growth_factor=None,         # ← main.py’den gelen
-        take_profit_ratio=None,     # ← YENİ isim: main.py ile eşleşiyor
-        stop_loss_ratio=None        # ← YENİ isim: main.py ile eşleşiyor
+        growth_factor=None,
+        take_profit_ratio=None,
+        stop_loss_ratio=None
     ):
-        # Context bilgisini temizle (pozisyon zamanları korunur)
         self.reset()
-
-        # Temel context
-        self.symbol   = symbol
-        self.mode     = mode
-        self.risk     = risk
+        self.symbol = symbol
+        self.mode = mode
+        self.risk = risk
         self.pressure = pressure
-
-        # Teknik sinyalleri ata
-        self.tech.update({
-            'rsi_15m':           rsi_15m,
-            'macd_15m':          macd_15m,
-            'macd_signal_15m':   macd_signal_15m,
-            'rsi_1h':            rsi_1h,
-            'macd_1h':           macd_1h,
-            'macd_signal_1h':    macd_signal_1h,
-            'atr':               atr
-        })
-
-        # Dönemden gelen parametreleri ata
+        self.tech = {
+            'rsi_15m': rsi_15m,
+            'macd_15m': macd_15m,
+            'macd_signal_15m': macd_signal_15m,
+            'rsi_1h': rsi_1h,
+            'macd_1h': macd_1h,
+            'macd_signal_1h': macd_signal_1h,
+            'atr': atr
+        }
         if growth_factor is not None:
             self.growth_factor = growth_factor
         if take_profit_ratio is not None:
             self.tp_ratio = take_profit_ratio
         if stop_loss_ratio is not None:
             self.sl_ratio = stop_loss_ratio
-
-        # Sentiment analizi
-        raw_sent = analyze_sentiment(symbol)
+        # sentiment & on-chain
         try:
-            self.sentiment = float(
-                raw_sent.get('score', raw_sent)
-                if isinstance(raw_sent, dict) else raw_sent
-            )
+            self.sentiment = float(analyze_sentiment(symbol).get('score', 0))
         except:
             self.sentiment = 0.0
-
-        # On-chain aktivite
-        raw_chain = track_onchain_activity(symbol)
         try:
-            self.onchain = float(
-                raw_chain.get('activity', raw_chain)
-                if isinstance(raw_chain, dict) else raw_chain
-            )
+            self.onchain = float(track_onchain_activity(symbol).get('activity', 0))
         except:
             self.onchain = 0.0
 
     def decide_trade(self, current_balance, current_pnl):
         reason = []
-        score = 0.0
+        # Drawdown protection
+        drawdown_pct = (settings.INITIAL_BALANCE and current_pnl / settings.INITIAL_BALANCE) or 0
+        if drawdown_pct <= -settings.MAX_DRAWDOWN_PCT:
+            reason.append('MaxDD')
+            return {'action': 'HOLD', 'reason': '|'.join(reason)}
 
-        # --- POZİSYON BÜYÜKLÜĞÜ: ATR’e göre ölçekle ---  
-        atr = self.tech.get('atr')
-        base_size = settings.POSITION_SIZE_PCT * self.growth_factor
+        # Fetch price series for trend and RSI
+        try:
+            ohlcv = fetch_ohlcv_from_binance(self.symbol, '15m', limit=60)
+            prices = [c[4] for c in ohlcv]
+        except Exception as e:
+            logger.log(f"[STRATEGY] Price fetch error: {e}", level="ERROR")
+            return {'action': 'HOLD', 'reason': 'NoData'}
+        current_price = prices[-1]
+        rsi_15m = calculate_rsi(prices)[-1]
+        ma50 = calculate_sma(prices, 50)
 
-        # ATR_RATIO default 1.0, ayarlanmışsa settings üzerinden alınır
-        atr_ratio = getattr(settings, 'ATR_RATIO', 1.0)
-
-        if atr and atr > 0:
-            size_pct = min(base_size, atr_ratio / atr)
-            reason.append(f"VolScale({atr_ratio:.2f}/{atr:.2f})")
-        else:
-            size_pct = round(base_size, 4)
-            reason.append(f"Growth{self.growth_factor:g}")
-        # -------------------------------------------
-
-        # Kar/Zarar kontrolü: dönemden gelen tp_ratio / sl_ratio
+        action = 'HOLD'
+        # TP/SL based on pnl
         profit_pct = current_pnl / (settings.INITIAL_BALANCE or 1)
-        action = None
         if profit_pct >= self.tp_ratio:
-            reason.append(f"TP({self.tp_ratio:.2f})")
+            reason.append(f'TP{self.tp_ratio:.2f}')
             action = 'SELL'
         elif profit_pct <= -self.sl_ratio:
-            reason.append(f"SL({self.sl_ratio:.2f})")
+            reason.append(f'SL{self.sl_ratio:.2f}')
             action = 'SELL'
 
-        # Minimum hold time kontrolü
+        # Enforce minimum hold time
         if action == 'SELL' and self.symbol in self.position_open_time:
             opened = self.position_open_time[self.symbol]
             if datetime.utcnow() - opened < self.MIN_HOLD_TIME:
                 reason.append('MinHold')
-                return {'action': 'HOLD', 'reason': '|'.join(reason), 'size_pct': 0.0}
+                return {'action': 'HOLD', 'reason': '|'.join(reason)}
             self.position_open_time.pop(self.symbol, None)
-            return {'action': 'SELL', 'reason': '|'.join(reason), 'size_pct': 0.0}
+            return {'action': 'SELL', 'reason': '|'.join(reason)}
 
-        # Risk modu veya özel zamanlar
+        # Risk-off conditions
         if self.mode in ['holiday', 'macro_event'] or self.risk == 'extreme_risk':
-            reason.append('NoTrade')
-            return {'action': 'HOLD', 'reason': '|'.join(reason), 'size_pct': 0.0}
+            reason.append('RiskOff')
+            return {'action': 'HOLD', 'reason': '|'.join(reason)}
 
-        # Liquidity pressure
-        if self.pressure == 'buy_pressure':
-            score += 0.5; reason.append('BuyPres')
-        if self.pressure == 'sell_pressure':
-            score -= 0.5; reason.append('SellPres')
-
-        # Teknik indikatörler (1h ve 15m)
-        r1, m1, s1 = self.tech['rsi_1h'], self.tech['macd_1h'], self.tech['macd_signal_1h']
-        if r1 is not None:
-            if r1 < settings.RSI_OVERSOLD:    
-                score += 0.7; reason.append('RSI1hOS')
-            elif r1 > settings.RSI_OVERBOUGHT:
-                score -= 0.7; reason.append('RSI1hOB')
-        if m1 is not None and s1 is not None:
-            score += (0.5 if m1 > s1 else -0.5); reason.append('MACD1h')
-
-        r15, m15, s15 = self.tech['rsi_15m'], self.tech['macd_15m'], self.tech['macd_signal_15m']
-        if r15 is not None:
-            if r15 < settings.RSI_OVERSOLD:
-                score += 0.3; reason.append('RSI15mOS')
-            elif r15 > settings.RSI_OVERBOUGHT:
-                score -= 0.3; reason.append('RSI15mOB')
-        if m15 is not None and s15 is not None:
-            score += (0.3 if m15 > s15 else -0.3); reason.append('MACD15m')
-
-        # Sentiment & On-chain katkısı
-        score += self.sentiment * 0.2; reason.append('Sentiment')
-        score += self.onchain   * 0.2; reason.append('OnChain')
-
-        # ATR bazlı volatilite scaling
-        if atr is not None and atr < settings.ATR_MIN_VOL:
-            score *= 0.5; reason.append('LowVol')
-
-        # Nihai karar
-        if action is None:
-            thr = settings.SCORE_BUY_THRESHOLD
-            if score >= thr:
+        # Trend + RSI filters
+        if action == 'HOLD':
+            if rsi_15m < settings.RSI_OVERSOLD and current_price > ma50:
                 action = 'BUY'
-            elif score <= -thr:
+                reason.append('TrendBuy')
+            elif rsi_15m > settings.RSI_OVERBOUGHT and current_price < ma50:
                 action = 'SELL'
-            else:
-                action = 'HOLD'
+                reason.append('TrendSell')
 
-        # Stealth jitter
+        # Stealth drop
         if action in ['BUY','SELL'] and random.random() < settings.TRADE_DROP_CHANCE:
-            reason.append('JitterDrop')
+            reason.append('Jitter')
             action = 'HOLD'
 
-        # Pozisyon açıldıysa kaydet, kapatıldıysa sil
+        # Record open time
         if action == 'BUY' and self.symbol not in self.position_open_time:
             self.position_open_time[self.symbol] = datetime.utcnow()
-        elif action == 'SELL' and self.symbol in self.position_open_time:
-            self.position_open_time.pop(self.symbol, None)
 
-        return {'action': action, 'reason': '|'.join(reason), 'size_pct': size_pct}
+        # Position sizing and risk manager for BUY
+        if action == 'BUY':
+            size_pct = settings.POSITION_SIZE_PCT * self.growth_factor
+            rm = RiskManager(entry_price=current_price,
+                             quantity=current_balance * size_pct,
+                             sl_ratio=self.sl_ratio,
+                             tp_ratio=self.tp_ratio,
+                             trailing=settings.ATR_RATIO)
+            rm.create_oco_order(self.symbol)
+            return {
+                'action': 'BUY',
+                'reason': '|'.join(reason),
+                'size_pct': size_pct
+            }
+
+        return {'action': action, 'reason': '|'.join(reason)}
