@@ -1,175 +1,112 @@
-import time
-from binance.client import Client
-from config import settings
-from core.paper_trade_executor import PaperTradeExecutor
-from core.risk_manager import RiskManager
-from core.logger import BotLogger
+import time import math from datetime import datetime from binance.client import Client from binance.exceptions import BinanceAPIException
+
+from config import settings from core.logger import BotLogger
 
 logger = BotLogger()
 
-class ExecutorManager:
-    def __init__(self):
-        if settings.PAPER_TRADING:
-            self.executor = PaperTradeExecutor(initial_balance=settings.INITIAL_BALANCE)
-            self.client = None
-        else:
-            self.client = Client(
-                settings.BINANCE_API_KEY,
-                settings.BINANCE_API_SECRET,
-                testnet=settings.TESTNET_MODE
-            )
-            if settings.TESTNET_MODE:
-                self.client.API_URL = 'https://testnet.binance.vision/api'
-            self.executor = None
+class ExecutorManager: """ Executes market orders on Binance Spot API, tracks open and closed positions, calculates PnL, and enforces order cooldowns with proper error handling and precision. """ def init(self, client: Client): # Ensure necessary settings are defined assert hasattr(settings, 'ORDER_COOLDOWN'), "settings.ORDER_COOLDOWN must be defined" assert hasattr(settings, 'SYMBOLS'), "settings.SYMBOLS must be defined" self.client = client self.open_positions = {} self.closed_positions = [] # Initialize symbol precision for quantity formatting self.precisions = {} for symbol in settings.SYMBOLS: info = self.client.get_symbol_info(symbol) step_size = next(f['stepSize'] for f in info['filters'] if f['filterType'] == 'LOT_SIZE') precision = int(round(-math.log10(float(step_size)))) self.precisions[symbol] = precision
 
-    def get_balance(self, asset: str) -> float:
-        if settings.PAPER_TRADING:
-            return self.executor.get_balance(asset)
-        try:
-            balance_info = self.client.get_asset_balance(asset=asset)
-            return float(balance_info.get('free', 0.0))
-        except Exception as e:
-            logger.error(f"Get balance error: {e}")
-            return 0.0
+def buy(self, symbol: str, usdt_amount: float):
+    """
+    Place a market buy order for a given USDT amount, record entry price and quantity.
+    """
+    try:
+        ticker = self.client.get_symbol_ticker(symbol=symbol)
+        price = float(ticker.get('price', 0))
+        if price <= 0:
+            logger.info(f"EXECUTOR BUY {symbol}: invalid price {price}")
+            return
+    except BinanceAPIException as e:
+        logger.info(f"EXECUTOR BUY {symbol}: ticker fetch error {e}")
+        return
 
-    def manage_position(self, symbol: str, action: str) -> dict:
-        # Paper‐trading modunda delegasyon
-        if settings.PAPER_TRADING:
-            result = self.executor.manage_position(symbol, action)
-            # fallback: paper da None dönmesin
-            return result or {
-                'action': 'HOLD',
-                'quantity': 0.0,
-                'price': 0.0,
-                'pnl': 0.0
-            }
+    # Calculate quantity with proper precision
+    precision = self.precisions.get(symbol, getattr(settings, 'QUANTITY_DECIMALS', 8))
+    quantity = round(usdt_amount / price, precision)
 
-        # Live trading
-        base_asset = symbol.replace('USDT', '')
+    try:
+        order = self.client.create_order(
+            symbol=symbol,
+            side='BUY',
+            type='MARKET',
+            quantity=quantity
+        )
+    except BinanceAPIException as e:
+        logger.info(f"EXECUTOR BUY {symbol}: order error {e}")
+        return
 
-        # (0) Fiyatı alalım
-        try:
-            current_price = float(self.client.get_symbol_ticker(symbol=symbol)['price'])
-        except Exception as e:
-            logger.error(f"Price fetch error: {e}")
-            return {
-                'action': 'ERROR',
-                'quantity': 0.0,
-                'price': 0.0,
-                'pnl': 0.0
-            }
+    # Determine actual entry price
+    fills = order.get('fills')
+    entry_price = float(fills[0]['price']) if fills else price
 
-        # (1) BUY işlemi
-        if action.upper() == 'BUY':
-            usdt_balance = self.get_balance('USDT')
-            trade_amount = usdt_balance * settings.POSITION_SIZE_PCT
-            trade_amount = max(trade_amount, 10)
+    # Record open position
+    self.open_positions[symbol] = {
+        'entry_price': entry_price,
+        'quantity': quantity,
+        'timestamp': datetime.utcnow()
+    }
+    logger.info(f"EXECUTOR BUY {symbol}: qty={quantity}, entry={entry_price}")
+    time.sleep(settings.ORDER_COOLDOWN)
 
-            try:
-                order = self.client.create_order(
-                    symbol=symbol,
-                    side='BUY',
-                    type='MARKET',
-                    quoteOrderQty=trade_amount
-                )
-                executed_qty = float(order['executedQty'])
-                avg_fill_price = float(order['cummulativeQuoteQty']) / executed_qty
-                logger.info(f"[BINANCE] BUY executed: {executed_qty} @ {avg_fill_price:.2f}")
+def sell(self, symbol: str):
+    """
+    Close an existing open position with a market sell order,
+    calculate PnL and record the closed position.
+    """
+    position = self.open_positions.get(symbol)
+    if not position:
+        logger.info(f"EXECUTOR SELL {symbol}: no open position to close.")
+        return
 
-                # SL/TP ayarla
-                rm = RiskManager(entry_price=avg_fill_price, quantity=executed_qty)
-                oco_params = rm.create_oco_params()
-                try:
-                    oco_order = self.client.create_oco_order(
-                        symbol=symbol,
-                        side='SELL',
-                        quantity=executed_qty,
-                        price=oco_params['price'],
-                        stopPrice=oco_params['stopPrice'],
-                        stopLimitPrice=oco_params['stopLimitPrice'],
-                        stopLimitTimeInForce='GTC'
-                    )
-                    logger.info(f"[BINANCE] OCO SELL set => {oco_order}")
-                except Exception as e:
-                    logger.error(f"[BINANCE] OCO SELL error: {e}")
-                    # OCO başarısızsa hemen market sell
-                    self.client.create_order(
-                        symbol=symbol,
-                        side='SELL',
-                        type='MARKET',
-                        quantity=executed_qty
-                    )
-                    logger.warning("[EXECUTOR] Pozisyon hemen kapatıldı (OCO başarısız).")
+    quantity = position['quantity']
+    try:
+        order = self.client.create_order(
+            symbol=symbol,
+            side='SELL',
+            type='MARKET',
+            quantity=quantity
+        )
+    except BinanceAPIException as e:
+        logger.info(f"EXECUTOR SELL {symbol}: order error {e}")
+        return
 
-                return {
-                    'action': 'BUY',
-                    'quantity': executed_qty,
-                    'price': avg_fill_price,
-                    'pnl': 0.0
-                }
+    # Determine exit price
+    fills = order.get('fills')
+    try:
+        exit_price = float(fills[0]['price']) if fills else float(
+            self.client.get_symbol_ticker(symbol=symbol).get('price', 0)
+        )
+    except (BinanceAPIException, ValueError) as e:
+        logger.info(f"EXECUTOR SELL {symbol}: exit price fetch error {e}")
+        exit_price = position['entry_price']
 
-            except Exception as e:
-                logger.error(f"[EXECUTOR] BUY error: {e}")
-                return {
-                    'action': 'ERROR',
-                    'quantity': 0.0,
-                    'price': 0.0,
-                    'pnl': 0.0
-                }
+    entry_price = position['entry_price']
+    pnl = (exit_price - entry_price) * quantity
 
-        # (2) SELL işlemi
-        elif action.upper() == 'SELL':
-            asset_balance = self.get_balance(base_asset)
-            if asset_balance <= 0:
-                logger.warning(f"[EXECUTOR] {base_asset} bakiyesi yetersiz.")
-                return {
-                    'action': 'HOLD',
-                    'quantity': 0.0,
-                    'price': current_price,
-                    'pnl': 0.0
-                }
+    # Record closed position
+    self.closed_positions.append({
+        'symbol': symbol,
+        'entry_price': entry_price,
+        'exit_price': exit_price,
+        'quantity': quantity,
+        'pnl': pnl,
+        'closed_at': datetime.utcnow()
+    })
+    # Remove open position
+    self.open_positions.pop(symbol, None)
 
-            try:
-                order = self.client.create_order(
-                    symbol=symbol,
-                    side='SELL',
-                    type='MARKET',
-                    quantity=asset_balance
-                )
-                executed_qty = float(order['executedQty'])
-                avg_fill_price = float(order['cummulativeQuoteQty']) / executed_qty
-                logger.info(f"[BINANCE] SELL executed: {executed_qty} @ {avg_fill_price:.2f}")
+    logger.info(f"EXECUTOR SELL {symbol}: qty={quantity}, exit={exit_price}, PnL={pnl}")
+    time.sleep(settings.ORDER_COOLDOWN)
 
-                return {
-                    'action': 'SELL',
-                    'quantity': executed_qty,
-                    'price': avg_fill_price,
-                    'pnl': 0.0
-                }
+def get_open_positions(self):
+    """
+    Return a snapshot of current open positions.
+    """
+    return self.open_positions.copy()
 
-            except Exception as e:
-                logger.error(f"[EXECUTOR] SELL error: {e}")
-                return {
-                    'action': 'ERROR',
-                    'quantity': 0.0,
-                    'price': 0.0,
-                    'pnl': 0.0
-                }
+def get_closed_positions(self):
+    """
+    Return a record of closed positions with PnL details.
+    """
+    return list(self.closed_positions)
 
-        # (3) Diğer durumlar için açık dönüş
-        else:
-            logger.info(f"[EXECUTOR] No action performed for {action}")
-            return {
-                'action': 'HOLD',
-                'quantity': 0.0,
-                'price': current_price,
-                'pnl': 0.0
-            }
-
-        # Güvence: hiçbir koşulda None dönmesin
-        return {
-            'action': 'HOLD',
-            'quantity': 0.0,
-            'price': current_price if 'current_price' in locals() else 0.0,
-            'pnl': 0.0
-        }
