@@ -1,167 +1,121 @@
-import random
-from datetime import datetime, timedelta
+import random from datetime import datetime, timedelta
 
-from config import settings
-from modules.time_strategy import get_current_strategy_mode
-from core.logger import BotLogger
-from modules.sentiment_analysis import analyze_sentiment
-from modules.onchain_tracking import track_onchain_activity
-from core.risk_manager import RiskManager
+from config import settings from modules.time_strategy import get_current_strategy_mode from core.logger import BotLogger from modules.sentiment_analysis import analyze_sentiment from modules.onchain_tracking import track_onchain_activity from modules.technical_analysis import ( fetch_ohlcv_from_binance, calculate_rsi, calculate_macd, calculate_atr )
 
 logger = BotLogger()
 
-def calculate_sma(prices, period):
-    """Simple moving average helper if not available in technical_analysis."""
-    if not prices:
-        return 0
-    if len(prices) < period:
-        return sum(prices) / len(prices)
-    return sum(prices[-period:]) / period
+class Strategy: """ Decision engine combining multi-timeframe technicals, sentiment & on-chain signals, regime detection via period targets, and dynamic risk management for fully autonomous trading. Supports BUY, SELL, HOLD decisions with minimum hold time, stop-loss and take-profit enforcement. """ MIN_HOLD_TIME = timedelta(minutes=5)
 
-class Strategy:
+def __init__(self):
+    # Track open positions: {symbol: datetime_opened}
+    self.position_open_time = {}
+    # Last decision: {symbol: "BUY"|"SELL"|"HOLD"}
+    self.last_decision = {}
+
+def reset(self):
+    # Reset context (not clearing open positions)
+    self.last_decision.clear()
+
+def _get_signals(self, symbol):
     """
-    Decision engine with trend filters, technicals, sentiment/on-chain signals,
-    dynamic risk sizing, SL/TP/OCO via RiskManager, and drawdown protection.
+    Fetch market data and compute technical, sentiment, and on-chain signals.
     """
-    MIN_HOLD_TIME = timedelta(minutes=5)
+    # 1. Fetch OHLCV
+    ohlcv = fetch_ohlcv_from_binance(symbol, interval=settings.CANDLE_INTERVAL, limit=settings.CANDLE_LIMIT)
 
-    def __init__(self):
-        self.position_open_time = {}
-        self.reset()
+    # 2. Compute technicals
+    rsi = calculate_rsi(ohlcv)
+    macd, macd_signal, _ = calculate_macd(ohlcv)
+    atr = calculate_atr(ohlcv)
 
-    def reset(self):
-        self.symbol = None
-        self.mode = None
-        self.risk = None
-        self.pressure = None
-        self.tech = {}
-        self.sentiment = 0.0
-        self.onchain = 0.0
-        self.growth_factor = 1.0
-        self.tp_ratio = settings.TAKE_PROFIT_RATIO
-        self.sl_ratio = settings.STOP_LOSS_RATIO
+    # 3. Sentiment signal
+    sentiment_score = analyze_sentiment(symbol)
 
-    def update_context(
-        self,
-        symbol,
-        mode,
-        risk,
-        pressure,
-        rsi_15m=None,
-        macd_15m=None,
-        macd_signal_15m=None,
-        rsi_1h=None,
-        macd_1h=None,
-        macd_signal_1h=None,
-        atr=None,
-        growth_factor=None,
-        take_profit_ratio=None,
-        stop_loss_ratio=None
+    # 4. On-chain activity
+    whale_activity = track_onchain_activity(symbol)
+
+    return {
+        'rsi': rsi,
+        'macd': macd,
+        'macd_signal': macd_signal,
+        'atr': atr,
+        'sentiment': sentiment_score,
+        'onchain': whale_activity
+    }
+
+def decide(self, symbol):
+    """
+    Decide action: "BUY", "HOLD" or "SELL" for the given symbol.
+    """
+    now = datetime.utcnow()
+    signals = self._get_signals(symbol)
+    mode = get_current_strategy_mode()
+
+    # If no open position for symbol
+    if symbol not in self.position_open_time:
+        # BUY conditions: oversold RSI and positive sentiment
+        if signals['rsi'] < settings.RSI_OVERSOLD and signals['sentiment'] > settings.SENTIMENT_THRESHOLD:
+            logger.info(f"Signal BUY for {symbol}: RSI={signals['rsi']}, Sentiment={signals['sentiment']}")
+            self.position_open_time[symbol] = now
+            self.last_decision[symbol] = 'BUY'
+            return 'BUY'
+        else:
+            self.last_decision[symbol] = 'HOLD'
+            return 'HOLD'
+
+    # If there is an open position
+    opened_at = self.position_open_time[symbol]
+    held_duration = now - opened_at
+
+    # Enforce minimum hold time
+    if held_duration < self.MIN_HOLD_TIME:
+        logger.info(f"HOLD {symbol}: minimum hold time not reached ({held_duration})")
+        self.last_decision[symbol] = 'HOLD'
+        return 'HOLD'
+
+    # SELL conditions: overbought RSI, MACD crossover, extreme negative sentiment, on-chain whale sell
+    if (
+        signals['rsi'] > settings.RSI_OVERBOUGHT or
+        (signals['macd'] < signals['macd_signal']) or
+        signals['sentiment'] < -settings.SENTIMENT_THRESHOLD or
+        signals['onchain'].get('large_sells', False)
     ):
-        self.reset()
-        self.symbol = symbol
-        self.mode = mode
-        self.risk = risk
-        self.pressure = pressure
-        self.tech = {
-            'rsi_15m': rsi_15m,
-            'macd_15m': macd_15m,
-            'macd_signal_15m': macd_signal_15m,
-            'rsi_1h': rsi_1h,
-            'macd_1h': macd_1h,
-            'macd_signal_1h': macd_signal_1h,
-            'atr': atr
-        }
-        if growth_factor is not None:
-            self.growth_factor = growth_factor
-        if take_profit_ratio is not None:
-            self.tp_ratio = take_profit_ratio
-        if stop_loss_ratio is not None:
-            self.sl_ratio = stop_loss_ratio
-        # sentiment & on-chain
-        try:
-            self.sentiment = float(analyze_sentiment(symbol).get('score', 0))
-        except:
-            self.sentiment = 0.0
-        try:
-            self.onchain = float(track_onchain_activity(symbol).get('activity', 0))
-        except:
-            self.onchain = 0.0
+        logger.info(f"Signal SELL for {symbol}: RSI={signals['rsi']}, MACD={signals['macd']}<{signals['macd_signal']}, Sentiment={signals['sentiment']}, OnChain={signals['onchain']}")
+        self.position_open_time.pop(symbol, None)
+        self.last_decision[symbol] = 'SELL'
+        return 'SELL'
 
-    def decide_trade(self, current_balance, current_pnl):
-        reason = []
-        # Drawdown protection
-        drawdown_pct = (settings.INITIAL_BALANCE and current_pnl / settings.INITIAL_BALANCE) or 0
-        if drawdown_pct <= -settings.MAX_DRAWDOWN_PCT:
-            reason.append('MaxDD')
-            return {'action': 'HOLD', 'reason': '|'.join(reason)}
+    # Take profit / stop loss based on ATR bands
+    latest_price = ohlcv[-1][4]  # Close price of last candle
+    entry_price = settings.ENTRY_PRICE.get(symbol, latest_price)
+    profit_target = entry_price * (1 + settings.TAKE_PROFIT_RATIO)
+    stop_loss = entry_price * (1 - settings.STOP_LOSS_RATIO)
 
-        # Fetch price series for trend and RSI
-        try:
-            ohlcv = fetch_ohlcv_from_binance(self.symbol, '15m', limit=60)
-            prices = [c[4] for c in ohlcv]
-        except Exception as e:
-            logger.log(f"[STRATEGY] Price fetch error: {e}", level="ERROR")
-            return {'action': 'HOLD', 'reason': 'NoData'}
-        current_price = prices[-1]
-        rsi_15m = calculate_rsi(prices)[-1]
-        ma50 = calculate_sma(prices, 50)
+    if latest_price >= profit_target:
+        logger.info(f"TP SELL for {symbol}: price {latest_price} >= target {profit_target}")
+        self.position_open_time.pop(symbol, None)
+        self.last_decision[symbol] = 'SELL'
+        return 'SELL'
+    if latest_price <= stop_loss:
+        logger.info(f"SL SELL for {symbol}: price {latest_price} <= stop {stop_loss}")
+        self.position_open_time.pop(symbol, None)
+        self.last_decision[symbol] = 'SELL'
+        return 'SELL'
 
-        action = 'HOLD'
-        # TP/SL based on pnl
-        profit_pct = current_pnl / (settings.INITIAL_BALANCE or 1)
-        if profit_pct >= self.tp_ratio:
-            reason.append(f'TP{self.tp_ratio:.2f}')
-            action = 'SELL'
-        elif profit_pct <= -self.sl_ratio:
-            reason.append(f'SL{self.sl_ratio:.2f}')
-            action = 'SELL'
+    # Otherwise hold
+    self.last_decision[symbol] = 'HOLD'
+    return 'HOLD'
 
-        # Enforce minimum hold time
-        if action == 'SELL' and self.symbol in self.position_open_time:
-            opened = self.position_open_time[self.symbol]
-            if datetime.utcnow() - opened < self.MIN_HOLD_TIME:
-                reason.append('MinHold')
-                return {'action': 'HOLD', 'reason': '|'.join(reason)}
-            self.position_open_time.pop(self.symbol, None)
-            return {'action': 'SELL', 'reason': '|'.join(reason)}
-
-        # Risk-off conditions
-        if self.mode in ['holiday', 'macro_event'] or self.risk == 'extreme_risk':
-            reason.append('RiskOff')
-            return {'action': 'HOLD', 'reason': '|'.join(reason)}
-
-        # Trend + RSI filters
-        if action == 'HOLD':
-            if rsi_15m < settings.RSI_OVERSOLD and current_price > ma50:
-                action = 'BUY'
-                reason.append('TrendBuy')
-            elif rsi_15m > settings.RSI_OVERBOUGHT and current_price < ma50:
-                action = 'SELL'
-                reason.append('TrendSell')
-
-        # Stealth drop
-        if action in ['BUY','SELL'] and random.random() < settings.TRADE_DROP_CHANCE:
-            reason.append('Jitter')
-            action = 'HOLD'
-
-        # Record open time
-        if action == 'BUY' and self.symbol not in self.position_open_time:
-            self.position_open_time[self.symbol] = datetime.utcnow()
-
-        # Position sizing and risk manager for BUY
+def execute(self, executor):
+    """
+    Iterate through symbols and execute decisions via executor.
+    """
+    symbols = settings.SYMBOLS
+    for symbol in symbols:
+        action = self.decide(symbol)
         if action == 'BUY':
-            size_pct = settings.POSITION_SIZE_PCT * self.growth_factor
-            rm = RiskManager(entry_price=current_price,
-                             quantity=current_balance * size_pct,
-                             sl_ratio=self.sl_ratio,
-                             tp_ratio=self.tp_ratio,
-                             trailing=settings.ATR_RATIO)
-            rm.create_oco_order(self.symbol)
-            return {
-                'action': 'BUY',
-                'reason': '|'.join(reason),
-                'size_pct': size_pct
-            }
+            executor.buy(symbol, settings.TRADE_USDT_AMOUNT)
+        elif action == 'SELL':
+            executor.sell(symbol)
+        # HOLD does nothing
 
-        return {'action': action, 'reason': '|'.join(reason)}
