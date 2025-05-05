@@ -6,12 +6,17 @@ from modules.time_strategy import get_current_strategy_mode
 from core.logger import BotLogger
 from modules.sentiment_analysis import analyze_sentiment
 from modules.onchain_tracking import track_onchain_activity
-from modules.technical_analysis import (
-    fetch_ohlcv_from_binance, calculate_rsi, calculate_sma
-)
 from core.risk_manager import RiskManager
 
 logger = BotLogger()
+
+def calculate_sma(prices, period):
+    """Simple moving average helper if not available in technical_analysis."""
+    if not prices:
+        return 0
+    if len(prices) < period:
+        return sum(prices) / len(prices)
+    return sum(prices[-period:]) / period
 
 class Strategy:
     """
