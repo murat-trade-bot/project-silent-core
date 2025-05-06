@@ -1,112 +1,136 @@
-import time import math from datetime import datetime from binance.client import Client from binance.exceptions import BinanceAPIException
+import time
+import math
+from datetime import datetime
+from binance.client import Client
+from binance.exceptions import BinanceAPIException
 
-from config import settings from core.logger import BotLogger
+from config import settings
+from core.logger import BotLogger
 
 logger = BotLogger()
 
-class ExecutorManager: """ Executes market orders on Binance Spot API, tracks open and closed positions, calculates PnL, and enforces order cooldowns with proper error handling and precision. """ def init(self, client: Client): # Ensure necessary settings are defined assert hasattr(settings, 'ORDER_COOLDOWN'), "settings.ORDER_COOLDOWN must be defined" assert hasattr(settings, 'SYMBOLS'), "settings.SYMBOLS must be defined" self.client = client self.open_positions = {} self.closed_positions = [] # Initialize symbol precision for quantity formatting self.precisions = {} for symbol in settings.SYMBOLS: info = self.client.get_symbol_info(symbol) step_size = next(f['stepSize'] for f in info['filters'] if f['filterType'] == 'LOT_SIZE') precision = int(round(-math.log10(float(step_size)))) self.precisions[symbol] = precision
+class ExecutorManager:
+    """
+    Executes market orders on Binance Spot API, tracks open and closed positions,
+    calculates PnL, and enforces order cooldowns with proper error handling and precision.
+    """
+    def __init__(self, client: Client):
+        # Ensure necessary settings are defined
+        assert hasattr(settings, 'ORDER_COOLDOWN'), "settings.ORDER_COOLDOWN must be defined"
+        assert hasattr(settings, 'SYMBOLS'), "settings.SYMBOLS must be defined"
 
-def buy(self, symbol: str, usdt_amount: float):
-    """
-    Place a market buy order for a given USDT amount, record entry price and quantity.
-    """
-    try:
-        ticker = self.client.get_symbol_ticker(symbol=symbol)
-        price = float(ticker.get('price', 0))
-        if price <= 0:
-            logger.info(f"EXECUTOR BUY {symbol}: invalid price {price}")
+        self.client = client
+        self.open_positions = {}
+        self.closed_positions = []
+
+        # Initialize symbol precision for quantity formatting
+        self.precisions = {}
+        for symbol in settings.SYMBOLS:
+            info = self.client.get_symbol_info(symbol)
+            step_size = next(f['stepSize'] for f in info['filters'] if f['filterType'] == 'LOT_SIZE')
+            precision = int(round(-math.log10(float(step_size))))
+            self.precisions[symbol] = precision
+
+    def buy(self, symbol: str, usdt_amount: float):
+        """
+        Place a market buy order for a given USDT amount, record entry price and quantity.
+        """
+        try:
+            ticker = self.client.get_symbol_ticker(symbol=symbol)
+            price = float(ticker.get('price', 0))
+            if price <= 0:
+                logger.info(f"EXECUTOR BUY {symbol}: invalid price {price}")
+                return
+        except BinanceAPIException as e:
+            logger.info(f"EXECUTOR BUY {symbol}: ticker fetch error {e}")
             return
-    except BinanceAPIException as e:
-        logger.info(f"EXECUTOR BUY {symbol}: ticker fetch error {e}")
-        return
 
-    # Calculate quantity with proper precision
-    precision = self.precisions.get(symbol, getattr(settings, 'QUANTITY_DECIMALS', 8))
-    quantity = round(usdt_amount / price, precision)
+        # Calculate quantity with proper precision
+        precision = self.precisions.get(symbol, getattr(settings, 'QUANTITY_DECIMALS', 8))
+        quantity = round(usdt_amount / price, precision)
 
-    try:
-        order = self.client.create_order(
-            symbol=symbol,
-            side='BUY',
-            type='MARKET',
-            quantity=quantity
-        )
-    except BinanceAPIException as e:
-        logger.info(f"EXECUTOR BUY {symbol}: order error {e}")
-        return
+        try:
+            order = self.client.create_order(
+                symbol=symbol,
+                side='BUY',
+                type='MARKET',
+                quantity=quantity
+            )
+        except BinanceAPIException as e:
+            logger.info(f"EXECUTOR BUY {symbol}: order error {e}")
+            return
 
-    # Determine actual entry price
-    fills = order.get('fills')
-    entry_price = float(fills[0]['price']) if fills else price
+        # Determine actual entry price
+        fills = order.get('fills')
+        entry_price = float(fills[0]['price']) if fills else price
 
-    # Record open position
-    self.open_positions[symbol] = {
-        'entry_price': entry_price,
-        'quantity': quantity,
-        'timestamp': datetime.utcnow()
-    }
-    logger.info(f"EXECUTOR BUY {symbol}: qty={quantity}, entry={entry_price}")
-    time.sleep(settings.ORDER_COOLDOWN)
+        # Record open position
+        self.open_positions[symbol] = {
+            'entry_price': entry_price,
+            'quantity': quantity,
+            'timestamp': datetime.utcnow()
+        }
+        logger.info(f"EXECUTOR BUY {symbol}: qty={quantity}, entry={entry_price}")
+        time.sleep(settings.ORDER_COOLDOWN)
 
-def sell(self, symbol: str):
-    """
-    Close an existing open position with a market sell order,
-    calculate PnL and record the closed position.
-    """
-    position = self.open_positions.get(symbol)
-    if not position:
-        logger.info(f"EXECUTOR SELL {symbol}: no open position to close.")
-        return
+    def sell(self, symbol: str):
+        """
+        Close an existing open position with a market sell order,
+        calculate PnL and record the closed position.
+        """
+        position = self.open_positions.get(symbol)
+        if not position:
+            logger.info(f"EXECUTOR SELL {symbol}: no open position to close.")
+            return
 
-    quantity = position['quantity']
-    try:
-        order = self.client.create_order(
-            symbol=symbol,
-            side='SELL',
-            type='MARKET',
-            quantity=quantity
-        )
-    except BinanceAPIException as e:
-        logger.info(f"EXECUTOR SELL {symbol}: order error {e}")
-        return
+        quantity = position['quantity']
+        try:
+            order = self.client.create_order(
+                symbol=symbol,
+                side='SELL',
+                type='MARKET',
+                quantity=quantity
+            )
+        except BinanceAPIException as e:
+            logger.info(f"EXECUTOR SELL {symbol}: order error {e}")
+            return
 
-    # Determine exit price
-    fills = order.get('fills')
-    try:
-        exit_price = float(fills[0]['price']) if fills else float(
-            self.client.get_symbol_ticker(symbol=symbol).get('price', 0)
-        )
-    except (BinanceAPIException, ValueError) as e:
-        logger.info(f"EXECUTOR SELL {symbol}: exit price fetch error {e}")
-        exit_price = position['entry_price']
+        # Determine exit price
+        fills = order.get('fills')
+        try:
+            exit_price = float(fills[0]['price']) if fills else float(
+                self.client.get_symbol_ticker(symbol=symbol).get('price', 0)
+            )
+        except (BinanceAPIException, ValueError) as e:
+            logger.info(f"EXECUTOR SELL {symbol}: exit price fetch error {e}")
+            exit_price = position['entry_price']
 
-    entry_price = position['entry_price']
-    pnl = (exit_price - entry_price) * quantity
+        entry_price = position['entry_price']
+        pnl = (exit_price - entry_price) * quantity
 
-    # Record closed position
-    self.closed_positions.append({
-        'symbol': symbol,
-        'entry_price': entry_price,
-        'exit_price': exit_price,
-        'quantity': quantity,
-        'pnl': pnl,
-        'closed_at': datetime.utcnow()
-    })
-    # Remove open position
-    self.open_positions.pop(symbol, None)
+        # Record closed position
+        self.closed_positions.append({
+            'symbol': symbol,
+            'entry_price': entry_price,
+            'exit_price': exit_price,
+            'quantity': quantity,
+            'pnl': pnl,
+            'closed_at': datetime.utcnow()
+        })
+        # Remove open position
+        self.open_positions.pop(symbol, None)
 
-    logger.info(f"EXECUTOR SELL {symbol}: qty={quantity}, exit={exit_price}, PnL={pnl}")
-    time.sleep(settings.ORDER_COOLDOWN)
+        logger.info(f"EXECUTOR SELL {symbol}: qty={quantity}, exit={exit_price}, PnL={pnl}")
+        time.sleep(settings.ORDER_COOLDOWN)
 
-def get_open_positions(self):
-    """
-    Return a snapshot of current open positions.
-    """
-    return self.open_positions.copy()
+    def get_open_positions(self):
+        """
+        Return a snapshot of current open positions.
+        """
+        return self.open_positions.copy()
 
-def get_closed_positions(self):
-    """
-    Return a record of closed positions with PnL details.
-    """
-    return list(self.closed_positions)
-
+    def get_closed_positions(self):
+        """
+        Return a record of closed positions with PnL details.
+        """
+        return list(self.closed_positions)
