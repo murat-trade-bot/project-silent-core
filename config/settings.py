@@ -4,12 +4,12 @@ from dotenv import load_dotenv
 """
 Configuration settings for Project Silent Core.
 Loads environment variables and provides typed parameters for bot operation.
+Includes period definitions and dynamic trade sizing configuration.
 """
 # Load .env file
 load_dotenv()
 
-
-def _get_env(name: str, default=None, required: bool = False) -> str:
+def _get_env(name: str, default=None, required: bool = False):
     value = os.getenv(name, default)
     if required and not value:
         raise EnvironmentError(f"Required environment variable '{name}' is not set.")
@@ -43,8 +43,7 @@ if USE_DYNAMIC_SYMBOL_SELECTION:
             for s in exchange_info['symbols']
             if s['status'] == 'TRADING' and s['symbol'].endswith('USDT')
         ]
-    except Exception as e:
-        print(f"Dynamic symbol selection failed: {e}")
+    except Exception:
         SYMBOLS = [
             s.strip()
             for s in _get_env("SYMBOLS", "BTCUSDT,ETHUSDT,BNBUSDT").split(",")
@@ -65,6 +64,8 @@ PAPER_TRADING = _get_env("PAPER_TRADING", "True").lower() in ("true","1","yes")
 CYCLE_INTERVAL     = int(_get_env("CYCLE_INTERVAL", "1"))
 CYCLE_JITTER_MIN   = int(_get_env("CYCLE_JITTER_MIN", "0"))
 CYCLE_JITTER_MAX   = int(_get_env("CYCLE_JITTER_MAX", "0"))
+HEARTBEAT_INTERVAL = int(_get_env("HEARTBEAT_INTERVAL", "3600"))
+
 MAX_RETRIES        = int(_get_env("MAX_RETRIES", "5"))
 RETRY_WAIT_TIME    = int(_get_env("RETRY_WAIT_TIME", "5"))
 
@@ -83,93 +84,26 @@ MIN_INTERVAL_BETWEEN_TRADES = int(_get_env("MIN_INTERVAL_BETWEEN_TRADES", "0"))
 POSITION_SIZE_PCT = float(_get_env("POSITION_SIZE_PCT", "0.01"))
 
 # --- Phase Targets (Simple List) ---
-PHASE_TARGETS = [
-    3234.0, 38808.0, 388080.0,
-    900000.0, 1000000.0, 1250000.0
-]
+PHASE_TARGETS = [3234.0, 38808.0, 388080.0, 900000.0, 1000000.0, 1250000.0]
 
 # --- Period Definitions for Autonomous Management ---
+# Each period: name, target_balance, duration_days, withdraw_amount, keep_balance, growth_factor
 PERIODS = [
-    {
-        "name": "1. Dönem",
-        "start": "2025-04-25",
-        "end":   "2025-06-25",
-        "initial_balance": 231.0,
-        "target_balance":  3234.0,
-        "withdraw_amount": 0.0,
-        "keep_balance":    None,
-        "growth_factor":   14.0,
-        "take_profit_ratio": 0.10,
-        "stop_loss_ratio":   0.05
-    },
-    {
-        "name": "2. Dönem",
-        "start": "2025-06-26",
-        "end":   "2025-08-26",
-        "initial_balance": None,
-        "target_balance":  38808.0,
-        "withdraw_amount": 0.0,
-        "keep_balance":    None,
-        "growth_factor":   12.0,
-        "take_profit_ratio": 0.10,
-        "stop_loss_ratio":   0.05
-    },
-    {
-        "name": "3. Dönem",
-        "start": "2025-08-27",
-        "end":   "2025-10-27",
-        "initial_balance": None,
-        "target_balance":  388080.0,
-        "withdraw_amount": 238080.0,
-        "keep_balance":    150000.0,
-        "growth_factor":   10.0,
-        "take_profit_ratio": 0.10,
-        "stop_loss_ratio":   0.05
-    },
-    {
-        "name": "4. Dönem",
-        "start": "2025-10-28",
-        "end":   "2025-12-28",
-        "initial_balance": None,
-        "target_balance":  900000.0,
-        "withdraw_amount": 700000.0,
-        "keep_balance":    200000.0,
-        "growth_factor":   6.0,
-        "take_profit_ratio": 0.10,
-        "stop_loss_ratio":   0.05
-    },
-    {
-        "name": "5. Dönem",
-        "start": "2025-12-29",
-        "end":   "2026-02-01",
-        "initial_balance": None,
-        "target_balance":  1000000.0,
-        "withdraw_amount": 750000.0,
-        "keep_balance":    250000.0,
-        "growth_factor":   5.0,
-        "take_profit_ratio": 0.10,
-        "stop_loss_ratio":   0.05
-    },
-    {
-        "name": "6. Dönem",
-        "start": "2026-02-02",
-        "end":   "2026-04-02",
-        "initial_balance": None,
-        "target_balance":  1250000.0,
-        "withdraw_amount": 900000.0,
-        "keep_balance":    350000.0,
-        "growth_factor":   5.0,
-        "take_profit_ratio": 0.10,
-        "stop_loss_ratio":   0.05
-    }
+    {"name": "1. Dönem", "target_balance": 3234.0,    "duration_days": 60, "withdraw_amount": 0.0,      "keep_balance": None, "growth_factor": 14.0},
+    {"name": "2. Dönem", "target_balance": 38808.0,   "duration_days": 60, "withdraw_amount": 0.0,      "keep_balance": None, "growth_factor": 12.0},
+    {"name": "3. Dönem", "target_balance": 388080.0,  "duration_days": 60, "withdraw_amount": 238080.0, "keep_balance": 150000.0, "growth_factor": 10.0},
+    {"name": "4. Dönem", "target_balance": 900000.0,  "duration_days": 60, "withdraw_amount": 700000.0, "keep_balance": 200000.0, "growth_factor": 6.0},
+    {"name": "5. Dönem", "target_balance": 1000000.0, "duration_days": 60, "withdraw_amount": 750000.0, "keep_balance": 250000.0, "growth_factor": 5.0},
+    {"name": "6. Dönem", "target_balance": 1250000.0, "duration_days": 60, "withdraw_amount": 900000.0, "keep_balance": 350000.0, "growth_factor": 5.0},
 ]
+# Default period index (1-based)
+CURRENT_PERIOD = int(_get_env("CURRENT_PERIOD", "1"))
 
 # --- Technical Thresholds ---
 RSI_OVERSOLD   = float(_get_env("RSI_OVERSOLD", "30"))
 RSI_OVERBOUGHT = float(_get_env("RSI_OVERBOUGHT", "70"))
 ATR_MIN_VOL    = float(_get_env("ATR_MIN_VOL", "50"))
-# Volatiliteye göre pozisyon boyutlandırma için oran
-ATR_RATIO      = 0.02
+ATR_RATIO      = 0.02  # volatility-based sizing ratio
 
 # --- Decision Tuning ---
 SCORE_BUY_THRESHOLD = float(_get_env("SCORE_BUY_THRESHOLD", "1.5"))
@@ -180,12 +114,6 @@ STOP_LOSS_RATIO     = float(_get_env("STOP_LOSS_RATIO", "0.05"))
 TAKE_PROFIT_RATIO   = float(_get_env("TAKE_PROFIT_RATIO", "0.10"))
 MAX_DRAWDOWN_PCT    = float(_get_env("MAX_DRAWDOWN_PCT", "0.20"))
 TRADE_USDT_AMOUNT   = float(_get_env("TRADE_USDT_AMOUNT", "20"))
-
-# --- Period-based Targets (updated at runtime) ---
-PERIOD_TARGET_USDT = None
-
-# --- Initial Balance ---
-INITIAL_BALANCE = float(_get_env("INITIAL_BALANCE", "231"))
 
 # --- Logging & Persistence ---
 LOG_FILE     = _get_env("LOG_FILE", "bot_logs.txt")
