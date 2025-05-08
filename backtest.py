@@ -1,12 +1,9 @@
 import pandas as pd
 from binance.client import Client
- from minimal_strategy import Strategy
+from minimal_strategy import Strategy
 from core.executor import ExecutorManager
 
 def fetch_historical_klines(client: Client, symbol: str, interval: str, start_str: str) -> pd.DataFrame:
-    """
-    Binance API üzerinden tarihsel OHLCV verisini pandas DataFrame olarak getirir.
-    """
     klines = client.get_historical_klines(symbol, interval, start_str)
     df = pd.DataFrame(klines, columns=[
         'open_time','open','high','low','close','volume',
@@ -17,26 +14,17 @@ def fetch_historical_klines(client: Client, symbol: str, interval: str, start_st
     return df[['open_time','close']]
 
 def run_backtest(symbol: str = "BTCUSDT", interval: str = "1h", start_str: str = "1 day ago UTC", initial_balance: float = 100.0) -> float:
-    """
-    Tarihsel veri üzerinde basit backtest:
-      1. Fiyatlar üzerinden döngü kurar
-      2. Strategy ile aksiyon alır
-      3. ExecutorManager ile işlem simüle eder
-      4. Son portföy değerini döndürür
-    """
-    # Binance client ve veri çekimi
     client = Client()
     df = fetch_historical_klines(client, symbol, interval, start_str)
 
     balance = initial_balance
     position = 0.0
-    strategy = Strategy()
-    executor = ExecutorManager(client)  # Binance client parametresiyle başlat
+    strategy = Strategy()            # minimal_strategy stub
+    executor = ExecutorManager(client)
 
     for _, row in df.iterrows():
         price = row['close']
         action = strategy.get_action({'price': price})
-
         if action == 'BUY' and balance > 0:
             position = balance / price
             balance = 0.0
