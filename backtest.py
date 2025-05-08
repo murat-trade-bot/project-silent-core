@@ -1,7 +1,7 @@
 import pandas as pd
 from binance.client import Client
 from minimal_strategy import Strategy
-from core.executor import ExecutorManager
+from minimal_executor import Executor
 
 def fetch_historical_klines(client: Client, symbol: str, interval: str, start_str: str) -> pd.DataFrame:
     klines = client.get_historical_klines(symbol, interval, start_str)
@@ -19,8 +19,8 @@ def run_backtest(symbol: str = "BTCUSDT", interval: str = "1h", start_str: str =
 
     balance = initial_balance
     position = 0.0
-    strategy = Strategy()            # minimal_strategy stub
-    executor = ExecutorManager(client)
+    strategy = Strategy()
+    executor = Executor()  # stub Executor
 
     for _, row in df.iterrows():
         price = row['close']
