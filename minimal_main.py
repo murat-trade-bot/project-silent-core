@@ -2,6 +2,7 @@ import os
 from dotenv import load_dotenv
 from binance.client import Client
 from minimal_strategy import Strategy
+from minimal_executor import Executor
 
 def start_bot() -> bool:
     """
@@ -10,6 +11,7 @@ def start_bot() -> bool:
       2. Binance Client'ı oluşturur
       3. Konsola 'Bot Başlatıldı' yazar
       4. Strategy stub'unu çağırıp aksiyonu yazar
+      5. Executor stub'u ile aksiyonu uygular
     """
     load_dotenv()
     api_key    = os.getenv("BINANCE_API_KEY", "")
@@ -18,10 +20,11 @@ def start_bot() -> bool:
 
     # Başlatma mesajı
     print("Bot Başlatıldı")
-    # Strategy stub'u ile aksiyon al ve yazdır
+    # Strateji aksiyonu
     action = Strategy().get_action({})
     print(f"Aksiyon: {action}")
-
+    # Executor ile log ve onay
+    Executor().execute(action, {})
     return True
 
 if __name__ == "__main__":
