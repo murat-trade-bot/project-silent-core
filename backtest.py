@@ -1,6 +1,6 @@
 import pandas as pd
 from binance.client import Client
-from core.strategy import Strategy
+ from minimal_strategy import Strategy
 from core.executor import ExecutorManager
 
 def fetch_historical_klines(client: Client, symbol: str, interval: str, start_str: str) -> pd.DataFrame:
