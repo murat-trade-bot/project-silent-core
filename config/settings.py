@@ -80,6 +80,9 @@ STEALTH_ORDER_SIZE_JITTER = 0.2
 MAX_TRADES_PER_HOUR         = int(_get_env("MAX_TRADES_PER_HOUR", "20"))
 MIN_INTERVAL_BETWEEN_TRADES = int(_get_env("MIN_INTERVAL_BETWEEN_TRADES", "0"))
 
+# Minimum emirler arası bekleme süresi (saniye)
+ORDER_COOLDOWN = 1
+
 # --- Position Sizing ---
 POSITION_SIZE_PCT = float(_get_env("POSITION_SIZE_PCT", "0.01"))
 
