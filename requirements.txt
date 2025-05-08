@@ -1,6 +1,1 @@
-cat > requirements.txt << 'EOF'
-pytest
-python-dotenv
-python-binance
-pandas
-EOF
+
