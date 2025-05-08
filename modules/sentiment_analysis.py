@@ -12,7 +12,12 @@ import requests
 
 from core.logger import BotLogger
 from config import settings
-from anti_binance_tespit import anti_detection
+try:
+    from anti_binance_tespit import anti_detection
+except ImportError:
+    # Test/smoke aşamasında sentiment analizine ihtiyaç yok
+    def anti_detection(*args, **kwargs):
+        return None
 
 logger = BotLogger()
 
