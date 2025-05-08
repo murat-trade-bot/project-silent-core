@@ -24,12 +24,14 @@ def run_backtest(symbol: str = "BTCUSDT", interval: str = "1h", start_str: str =
       3. ExecutorManager ile işlem simüle eder
       4. Son portföy değerini döndürür
     """
-    client = Client()  # .env'deki anahtarları kullanır.
+    # Binance client ve veri çekimi
+    client = Client()
     df = fetch_historical_klines(client, symbol, interval, start_str)
+
     balance = initial_balance
     position = 0.0
     strategy = Strategy()
-    executor = ExecutorManager()
+    executor = ExecutorManager(client)  # Binance client parametresiyle başlat
 
     for _, row in df.iterrows():
         price = row['close']
