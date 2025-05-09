@@ -1,3 +1,4 @@
+from pathlib import Path
 import os
 import time
 import random
@@ -31,12 +32,20 @@ API_KEY = os.getenv('BINANCE_API_KEY', '')
 API_SECRET = os.getenv('BINANCE_API_SECRET', '')
 
 # Initialize Binance Client
-client = Client(API_KEY, API_SECRET)
-if settings.TESTNET_MODE:
-    client.API_URL = 'https://testnet.binance.vision/api'
-    logger.info('Testnet mode enabled')
-else:
-    logger.info('Live mode enabled')
+def initialize_client():
+    try:
+        client = Client(API_KEY, API_SECRET)
+        if settings.TESTNET_MODE:
+            client.API_URL = 'https://testnet.binance.vision/api'
+            logger.info('Testnet mode enabled')
+        else:
+            logger.info('Live mode enabled')
+        return client
+    except Exception as e:
+        logger.error(f"Client initialization failed: {e}")
+        raise
+
+client = initialize_client()
 
 # Initialize period state and core components
 start_period(client)
@@ -106,11 +115,11 @@ def print_metrics():
     avg_dur = sum(trade_durations) / len(trade_durations) if trade_durations else 0
     win_rate = (win_trades / total_trades) * 100 if total_trades else 0
 
-    print(
+    logger.info(
         f"Balance: {curr_balance:.2f} USDT | PnL%: {pnl_pct:+.2f}% | "
         f"Progress%: {progress_pct:.2f}%"
     )
-    print(
+    logger.info(
         f"Trades: {total_trades} | Wins: {win_trades} ({win_rate:.1f}%) | "
         f"Max Drawdown: {max_drawdown:.2f} | Avg Dur: {avg_dur:.1f}s"
     )
@@ -119,73 +128,79 @@ if __name__ == '__main__':
     last_heartbeat = time.time()
 
     while True:
-        # Refresh period settings
-        period = update_settings_for_period()
+        try:
+            period = update_settings_for_period()
+            extra = compute_daily_shortfall(client)
+            settings.TRADE_USDT_AMOUNT = base_trade_amount + extra
 
-        # Compute daily shortfall and adjust trade size
-        extra = compute_daily_shortfall(client)
-        settings.TRADE_USDT_AMOUNT = base_trade_amount + extra
+            if getattr(settings, 'USE_DYNAMIC_SYMBOL_SELECTION', False):
+                symbols = select_coins() or settings.SYMBOLS
+            else:
+                symbols = settings.SYMBOLS
 
-        # Dynamic symbol selection or fallback
-        if getattr(settings, 'USE_DYNAMIC_SYMBOL_SELECTION', False):
-            symbols = select_coins() or settings.SYMBOLS
-        else:
-            symbols = settings.SYMBOLS
+            for symbol in symbols:
+                cycle_start = time.time()
+                try:
+                    action = strategy.decide(symbol)
+                    trade_amount = settings.TRADE_USDT_AMOUNT
+                    if getattr(settings, 'USE_DYNAMIC_POSITION', False):
+                        atr = strategy._get_signals(symbol).get('atr')
+                        trade_amount = get_dynamic_position_size(atr, trade_amount)
 
-        for symbol in symbols:
-            cycle_start = time.time()
-            try:
-                action = strategy.decide(symbol)
-                trade_amount = settings.TRADE_USDT_AMOUNT
-                if getattr(settings, 'USE_DYNAMIC_POSITION', False):
-                    # assume _get_signals returns atr under 'atr'
-                    atr = strategy._get_signals(symbol).get('atr')
-                    trade_amount = get_dynamic_position_size(atr, trade_amount)
+                    if action == 'BUY':
+                        executor.buy(symbol, trade_amount)
+                    elif action == 'SELL':
+                        executor.sell(symbol)
 
-                if action == 'BUY':
-                    executor.buy(symbol, trade_amount)
-                elif action == 'SELL':
-                    executor.sell(symbol)
-                # HOLD → no action
+                    closed = executor.get_closed_positions()
+                    if closed:
+                        trade = closed[-1]
+                        trade['timestamp'] = datetime.utcnow()
+                        trade['duration'] = time.time() - cycle_start
 
-                # If a position closed, log and notify
-                closed = executor.get_closed_positions()
-                if closed:
-                    trade = closed[-1]
-                    trade['timestamp'] = datetime.utcnow()
-                    trade['duration'] = time.time() - cycle_start
+                        total_trades += 1
+                        if trade['pnl'] >= 0:
+                            win_trades += 1
+                        else:
+                            loss_trades += 1
 
-                    total_trades += 1
-                    if trade['pnl'] >= 0:
-                        win_trades += 1
-                    else:
-                        loss_trades += 1
-
-                    log_trade_csv(trade)
-                    print(
-                        f"{trade['timestamp']} | {trade['symbol']} {trade['action']} "
-                        f"{trade['quantity']} @ {trade['exit_price']:.2f} | "
-                        f"PnL {trade['pnl']:+.2f}"
-                    )
-                    if getattr(settings, 'NOTIFIER_ENABLED', False):
-                        send_notification(
-                            f"Trade {trade['action']} {trade['symbol']} PnL {trade['pnl']:+.2f}"
+                        log_trade_csv(trade)
+                        logger.info(
+                            f"{trade['timestamp']} | {trade['symbol']} {trade['action']} "
+                            f"{trade['quantity']} @ {trade['exit_price']:.2f} | "
+                            f"PnL {trade['pnl']:+.2f}"
                         )
-                    trade_durations.append(trade['duration'])
-                    print_metrics()
+                        if getattr(settings, 'NOTIFIER_ENABLED', False):
+                            send_notification(
+                                f"Trade {trade['action']} {trade['symbol']} PnL {trade['pnl']:+.2f}"
+                            )
+                        trade_durations.append(trade['duration'])
+                        print_metrics()
 
-            except BinanceAPIException as e:
-                logger.info(f"API error in cycle {symbol}: {e}")
-            except Exception as e:
-                logger.info(f"Error in cycle {symbol}: {e}")
+                except BinanceAPIException as e:
+                    logger.error(f"Binance API error for {symbol}: {e}")
+                    time.sleep(3)
+                except Exception as e:
+                    logger.exception(f"Unexpected error during trade cycle for {symbol}: {e}")
+                    time.sleep(2)
 
-            time.sleep(
-                settings.CYCLE_INTERVAL +
-                random.randint(settings.CYCLE_JITTER_MIN, settings.CYCLE_JITTER_MAX)
-            )
+                time.sleep(
+                    settings.CYCLE_INTERVAL +
+                    random.randint(settings.CYCLE_JITTER_MIN, settings.CYCLE_JITTER_MAX)
+                )
 
-        # Heartbeat log
-        if time.time() - last_heartbeat >= settings.HEARTBEAT_INTERVAL:
-            uptime = timedelta(seconds=int(time.time() - last_heartbeat))
-            logger.info(f"[HEARTBEAT] Uptime: {uptime}")
-            last_heartbeat = time.time()
+            if time.time() - last_heartbeat >= settings.HEARTBEAT_INTERVAL:
+                uptime = timedelta(seconds=int(time.time() - last_heartbeat))
+                logger.info(f"[HEARTBEAT] Uptime: {uptime}")
+                last_heartbeat = time.time()
+
+        except Exception as main_loop_error:
+            logger.exception(f"Main loop error: {main_loop_error}")
+            time.sleep(10)
+"""
+
+# Dosyayı yaz
+optimized_main_path.write_text(optimized_main_code)
+
+# Dosya yolunu döndür
+optimized_main_path.name
