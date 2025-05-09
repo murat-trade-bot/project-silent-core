@@ -4,19 +4,22 @@ from core.logger import BotLogger
 
 logger = BotLogger()
 
-def send_notification(message):
-    token   = settings.TELEGRAM_TOKEN
+def send_notification(message: str) -> dict:
+    """
+    Send a notification via Telegram.
+    Falls back to logging if token/chat_id missing.
+    """
+    token = settings.TELEGRAM_TOKEN
     chat_id = settings.TELEGRAM_CHAT_ID
 
     if not (token and chat_id):
         logger.warning("Telegram ayarları eksik. Bildirim gönderilemedi.")
-        return None
+        return {}
 
     url = f"https://api.telegram.org/bot{token}/sendMessage"
     payload = {
         "chat_id": chat_id,
         "text": message,
-        # "parse_mode": "Markdown"  # isterseniz bu yorumu kaldırarak ekleyebilirsiniz
     }
 
     try:
@@ -26,4 +29,4 @@ def send_notification(message):
         return resp.json()
     except Exception as e:
         logger.error(f"Notifier hatası: {e}")
-        return None
+        return {}
