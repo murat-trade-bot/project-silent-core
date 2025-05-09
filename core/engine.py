@@ -1,5 +1,3 @@
-# core/engine.py
-
 import time
 import random
 from datetime import datetime
@@ -52,7 +50,7 @@ class BotEngine:
                     try:
                         action = self.strategy.decide(symbol)
                         amount = settings.TRADE_USDT_AMOUNT
-                        if settings.USE_DYNAMIC_POSITION:
+                        if getattr(settings, 'USE_DYNAMIC_POSITION', False):
                             atr = self.strategy._get_signals(symbol).get('atr')
                             amount = get_dynamic_position_size(atr, amount)
 
@@ -68,18 +66,25 @@ class BotEngine:
                             trade['duration'] = time.time() - cycle_start
 
                             log_trade_csv(trade)
-                            if settings.NOTIFIER_ENABLED:
-                                send_notification(f\"Trade {trade['action']} {symbol} PnL {trade['pnl']:+.2f}\")
+                            if getattr(settings, 'NOTIFIER_ENABLED', False):
+                                send_notification(
+                                    f"Trade {trade['action']} {symbol} PnL {trade['pnl']:+.2f}"
+                                )
                             self.metrics.record(trade)
 
                     except BinanceAPIException as e:
-                        logger.error(f\"Binance API error for {symbol}: {e}\")
+                        logger.error(f"Binance API error for {symbol}: {e}")
                         time.sleep(3)
                     except Exception as e:
-                        logger.exception(f\"Unexpected error in trade cycle for {symbol}: {e}\")
+                        logger.exception(f"Unexpected error in trade cycle for {symbol}: {e}")
                         time.sleep(2)
 
-                    time.sleep(settings.CYCLE_INTERVAL + random.randint(settings.CYCLE_JITTER_MIN, settings.CYCLE_JITTER_MAX))
+                    time.sleep(
+                        settings.CYCLE_INTERVAL + random.randint(
+                            settings.CYCLE_JITTER_MIN,
+                            settings.CYCLE_JITTER_MAX
+                        )
+                    )
 
                 # 4) Heartbeat
                 if time.time() - last_heartbeat >= settings.HEARTBEAT_INTERVAL:
@@ -87,5 +92,5 @@ class BotEngine:
                     last_heartbeat = time.time()
 
             except Exception as e:
-                logger.exception(f\"Main loop error: {e}\")
+                logger.exception(f"Main loop error: {e}")
                 time.sleep(10)
