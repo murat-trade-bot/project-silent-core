@@ -1,5 +1,7 @@
 from dotenv import load_dotenv
 from binance.client import Client
+from notifier import send_notification
+import sys
 
 from config import settings
 from core.logger import BotLogger
@@ -11,17 +13,35 @@ from modules.strategy_optimizer import optimize_strategy_parameters
 load_dotenv()
 logger = BotLogger()
 
-def initialize_client():
+
+def initialize_client(retries: int = 3, delay: int = 5) -> Client:
     """
-    Initialize the Binance Client using API keys and testnet mode.
+    Initialize the Binance Client with retry and notification.
+    Attempts to connect up to `retries` times, waiting `delay` seconds between attempts.
+    Sends a Telegram notification on persistent failure.
     """
-    client = Client(settings.BINANCE_API_KEY, settings.BINANCE_API_SECRET)
-    if settings.TESTNET_MODE:
-        client.API_URL = 'https://testnet.binance.vision/api'
-        logger.info("Testnet mode enabled")
-    else:
-        logger.info("Live mode enabled")
-    return client
+    for attempt in range(1, retries + 1):
+        try:
+            client = Client(settings.BINANCE_API_KEY, settings.BINANCE_API_SECRET)
+            if settings.TESTNET_MODE:
+                client.API_URL = 'https://testnet.binance.vision/api'
+                logger.info("Testnet mode enabled")
+            else:
+                logger.info("Live mode enabled")
+            return client
+        except Exception as e:
+            logger.error(f"Client initialization failed (attempt {attempt}/{retries}): {e}")
+            if attempt < retries:
+                time_msg = f"Retrying in {delay} seconds..."
+                logger.info(time_msg)
+                time.sleep(delay)
+            else:
+                err_msg = f"Failed to initialize Binance client after {retries} attempts: {e}"
+                logger.critical(err_msg)
+                if settings.NOTIFIER_ENABLED:
+                    send_notification(f"[CRITICAL] {err_msg}")
+                sys.exit(1)
+
 
 def main():
     """
