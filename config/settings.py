@@ -83,6 +83,9 @@ MIN_INTERVAL_BETWEEN_TRADES = int(_get_env("MIN_INTERVAL_BETWEEN_TRADES", "0"))
 # Minimum emirler arası bekleme süresi (saniye)
 ORDER_COOLDOWN = 1
 
+# Default growth factor for trading periods
+GROWTH_FACTOR = float(_get_env("GROWTH_FACTOR", "1.0"))
+
 # --- Position Sizing ---
 POSITION_SIZE_PCT = float(_get_env("POSITION_SIZE_PCT", "0.01"))
 
