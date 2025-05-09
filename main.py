@@ -1,4 +1,10 @@
 from pathlib import Path
+
+# Yeni dosya yolu (proje kökünde main.py olarak yazacak)
+main_path = Path("/root/project-silent-core/main.py")
+
+# Güncellenmiş ve optimize edilmiş main.py içeriği
+main_code = """
 import os
 import time
 import random
@@ -190,6 +196,7 @@ if __name__ == '__main__':
                 )
 
             if time.time() - last_heartbeat >= settings.HEARTBEAT_INTERVAL:
+                from datetime import timedelta
                 uptime = timedelta(seconds=int(time.time() - last_heartbeat))
                 logger.info(f"[HEARTBEAT] Uptime: {uptime}")
                 last_heartbeat = time.time()
@@ -200,7 +207,7 @@ if __name__ == '__main__':
 """
 
 # Dosyayı yaz
-optimized_main_path.write_text(optimized_main_code)
+main_path.write_text(main_code)
 
 # Dosya yolunu döndür
-optimized_main_path.name
+print(main_path)
