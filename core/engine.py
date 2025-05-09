@@ -3,6 +3,7 @@ import random
 from datetime import datetime
 
 from binance.exceptions import BinanceAPIException
+from requests.exceptions import RequestException
 
 from core.logger import BotLogger
 from core.csv_logger import log_trade_csv
@@ -39,10 +40,7 @@ class BotEngine:
                 settings.TRADE_USDT_AMOUNT = self.base_amount + extra
 
                 # 2) Sembol seçimi
-                if settings.USE_DYNAMIC_SYMBOL_SELECTION:
-                    symbols = select_coins() or settings.SYMBOLS
-                else:
-                    symbols = settings.SYMBOLS
+                symbols = select_coins() or settings.SYMBOLS if settings.USE_DYNAMIC_SYMBOL_SELECTION else settings.SYMBOLS
 
                 # 3) Her sembol için trade döngüsü
                 for symbol in symbols:
@@ -66,7 +64,7 @@ class BotEngine:
                             trade['duration'] = time.time() - cycle_start
 
                             log_trade_csv(trade)
-                            if getattr(settings, 'NOTIFIER_ENABLED', False):
+                            if settings.NOTIFIER_ENABLED:
                                 send_notification(
                                     f"Trade {trade['action']} {symbol} PnL {trade['pnl']:+.2f}"
                                 )
@@ -74,11 +72,23 @@ class BotEngine:
 
                     except BinanceAPIException as e:
                         logger.error(f"Binance API error for {symbol}: {e}")
-                        time.sleep(3)
+                        if settings.NOTIFIER_ENABLED:
+                            send_notification(f"[ERROR] Binance API error for {symbol}: {e}")
+                        time.sleep(settings.RETRY_WAIT_TIME if hasattr(settings, 'RETRY_WAIT_TIME') else 3)
+
+                    except (ConnectionError, RequestException) as e:
+                        logger.error(f"Connection error for {symbol}: {e}")
+                        if settings.NOTIFIER_ENABLED:
+                            send_notification(f"[ERROR] Connection issue for {symbol}: {e}")
+                        time.sleep(settings.RETRY_WAIT_TIME if hasattr(settings, 'RETRY_WAIT_TIME') else 5)
+
                     except Exception as e:
                         logger.exception(f"Unexpected error in trade cycle for {symbol}: {e}")
-                        time.sleep(2)
+                        if settings.NOTIFIER_ENABLED:
+                            send_notification(f"[CRITICAL] Unexpected error for {symbol}: {e}")
+                        time.sleep(settings.RETRY_WAIT_TIME if hasattr(settings, 'RETRY_WAIT_TIME') else 10)
 
+                    # Döngü gecikmesi
                     time.sleep(
                         settings.CYCLE_INTERVAL + random.randint(
                             settings.CYCLE_JITTER_MIN,
@@ -93,4 +103,6 @@ class BotEngine:
 
             except Exception as e:
                 logger.exception(f"Main loop error: {e}")
+                if settings.NOTIFIER_ENABLED:
+                    send_notification(f"[CRITICAL] Main loop error: {e}")
                 time.sleep(10)
