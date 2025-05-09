@@ -1,5 +1,12 @@
-""" Module: period_manager.py Handles automatic determination of current trading period and updates settings accordingly. Also manages period state and computes daily shortfall for dynamic trade sizing. """ import os import json from datetime import datetime, timedelta
+ """
+ Module: period_manager.py
+ Handles automatic determination of current trading period and updates settings accordingly.
+ Also manages period state and computes daily shortfall for dynamic trade sizing.
+ """
 
+ import os
+ import json
+from datetime import datetime, timedelta
 from config import settings from core.executor import ExecutorManager
 
 File to persist period state
