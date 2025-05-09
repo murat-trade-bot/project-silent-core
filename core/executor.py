@@ -23,6 +23,10 @@ class ExecutorManager:
         self.open_positions = {}
         self.closed_positions = []
 
+        # Rate limit control
+        self.cooldown = settings.ORDER_COOLDOWN
+        self.last_order_time = 0
+
         # Initialize symbol precision for quantity formatting
         self.precisions = {}
         for symbol in settings.SYMBOLS:
@@ -30,6 +34,30 @@ class ExecutorManager:
             step_size = next(f['stepSize'] for f in info['filters'] if f['filterType'] == 'LOT_SIZE')
             precision = int(round(-math.log10(float(step_size))))
             self.precisions[symbol] = precision
+
+    def execute(self, action: str, data: dict) -> bool:
+        """
+        Execute given action. Here stub logs execution; replace with real API calls later.
+        """
+        # Enforce order cooldown
+        elapsed = time.time() - self.last_order_time
+        if elapsed < self.cooldown:
+            time.sleep(self.cooldown - elapsed)
+
+        logger.info(f"Executing action: {action} with data: {data}")
+        self.last_order_time = time.time()
+        return True
+
+    def get_balance(self, asset: str) -> float:
+        """
+        Returns free balance for the specified asset using Binance API.
+        """
+        try:
+            balance_info = self.client.get_asset_balance(asset)
+            return float(balance_info.get('free', 0.0))
+        except Exception as e:
+            logger.error(f"Error fetching balance for {asset}: {e}")
+            return 0.0
 
     def buy(self, symbol: str, usdt_amount: float):
         """
@@ -45,7 +73,6 @@ class ExecutorManager:
             logger.info(f"EXECUTOR BUY {symbol}: ticker fetch error {e}")
             return
 
-        # Calculate quantity with proper precision
         precision = self.precisions.get(symbol, getattr(settings, 'QUANTITY_DECIMALS', 8))
         quantity = round(usdt_amount / price, precision)
 
@@ -60,18 +87,16 @@ class ExecutorManager:
             logger.info(f"EXECUTOR BUY {symbol}: order error {e}")
             return
 
-        # Determine actual entry price
         fills = order.get('fills')
         entry_price = float(fills[0]['price']) if fills else price
 
-        # Record open position
         self.open_positions[symbol] = {
             'entry_price': entry_price,
             'quantity': quantity,
             'timestamp': datetime.utcnow()
         }
         logger.info(f"EXECUTOR BUY {symbol}: qty={quantity}, entry={entry_price}")
-        time.sleep(settings.ORDER_COOLDOWN)
+        time.sleep(self.cooldown)
 
     def sell(self, symbol: str):
         """
@@ -95,7 +120,6 @@ class ExecutorManager:
             logger.info(f"EXECUTOR SELL {symbol}: order error {e}")
             return
 
-        # Determine exit price
         fills = order.get('fills')
         try:
             exit_price = float(fills[0]['price']) if fills else float(
@@ -108,7 +132,6 @@ class ExecutorManager:
         entry_price = position['entry_price']
         pnl = (exit_price - entry_price) * quantity
 
-        # Record closed position
         self.closed_positions.append({
             'symbol': symbol,
             'entry_price': entry_price,
@@ -117,19 +140,18 @@ class ExecutorManager:
             'pnl': pnl,
             'closed_at': datetime.utcnow()
         })
-        # Remove open position
         self.open_positions.pop(symbol, None)
 
         logger.info(f"EXECUTOR SELL {symbol}: qty={quantity}, exit={exit_price}, PnL={pnl}")
-        time.sleep(settings.ORDER_COOLDOWN)
+        time.sleep(self.cooldown)
 
-    def get_open_positions(self):
+    def get_open_positions(self) -> dict:
         """
         Return a snapshot of current open positions.
         """
         return self.open_positions.copy()
 
-    def get_closed_positions(self):
+    def get_closed_positions(self) -> list:
         """
         Return a record of closed positions with PnL details.
         """
