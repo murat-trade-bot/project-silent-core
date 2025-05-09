@@ -2,6 +2,7 @@ from dotenv import load_dotenv
 from binance.client import Client
 from notifier import send_notification
 import sys
+import time                
 
 from config import settings
 from core.logger import BotLogger
@@ -12,7 +13,6 @@ from modules.strategy_optimizer import optimize_strategy_parameters
 # Load environment variables
 load_dotenv()
 logger = BotLogger()
-
 
 def initialize_client(retries: int = 3, delay: int = 5) -> Client:
     """
@@ -41,7 +41,6 @@ def initialize_client(retries: int = 3, delay: int = 5) -> Client:
                 if settings.NOTIFIER_ENABLED:
                     send_notification(f"[CRITICAL] {err_msg}")
                 sys.exit(1)
-
 
 def main():
     """
