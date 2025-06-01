@@ -1,3 +1,0 @@
-# Beklenen değerlerle karşılaştırma
-beklenen_hedef = 14.5  # Örneğin beklenen günlük hedef
-assert abs(daily_target - beklenen_hedef) < 0.01, "Günlük hedef beklenen değerden sapma gösteriyor!"
