@@ -1,0 +1,11 @@
+def select_coins(market_data: dict = None, top_n: int = 3) -> list:
+    """
+    Piyasadan en yüksek skorlu/top hacimli ilk N coini seçer.
+    market_data: {"BTC": skor, "ETH": skor, ...}
+    top_n: Kaç coin seçilecek
+    """
+    if not market_data:
+        # Dummy veri döndür
+        return ["BTC", "ETH", "BNB"][:top_n]
+    sorted_coins = sorted(market_data.items(), key=lambda x: x[1], reverse=True)
+    return [coin for coin, score in sorted_coins[:top_n]]

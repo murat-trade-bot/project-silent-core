@@ -14,8 +14,7 @@ class ExecutorManager:
     Executes market orders on Binance Spot API, tracks open and closed positions,
     calculates PnL, and enforces order cooldowns with proper error handling and precision.
     """
-    def __init__(self, client: Client):
-        # Ensure necessary settings are defined
+    def __init__(self, client: Client, dry_run=False):
         assert hasattr(settings, 'ORDER_COOLDOWN'), "settings.ORDER_COOLDOWN must be defined"
         assert hasattr(settings, 'SYMBOLS'), "settings.SYMBOLS must be defined"
 
@@ -23,23 +22,35 @@ class ExecutorManager:
         self.open_positions = {}
         self.closed_positions = []
 
-        # Rate limit control
         self.cooldown = settings.ORDER_COOLDOWN
         self.last_order_time = 0
 
         # Initialize symbol precision for quantity formatting
         self.precisions = {}
         for symbol in settings.SYMBOLS:
-            info = self.client.get_symbol_info(symbol)
-            step_size = next(f['stepSize'] for f in info['filters'] if f['filterType'] == 'LOT_SIZE')
-            precision = int(round(-math.log10(float(step_size))))
-            self.precisions[symbol] = precision
+            try:
+                info = self.client.get_symbol_info(symbol)
+                step_size = next(f['stepSize'] for f in info['filters'] if f['filterType'] == 'LOT_SIZE')
+                precision = int(round(-math.log10(float(step_size))))
+                self.precisions[symbol] = precision
+            except Exception as e:
+                logger.error(f"Error fetching precision for {symbol}: {e}")
+                self.precisions[symbol] = getattr(settings, 'QUANTITY_DECIMALS', 8)
 
-    def execute(self, action: str, data: dict) -> bool:
+        self.dry_run = dry_run
+
+    def execute(self, action: str, data: dict, stealth=True) -> bool:
         """
-        Execute given action. Here stub logs execution; replace with real API calls later.
+        Execute given action. Supports dry-run and stealth mode.
         """
-        # Enforce order cooldown
+        import random
+        if stealth:
+            delay = random.uniform(0.5, 2.5)
+            time.sleep(delay)
+        if self.dry_run:
+            logger.info(f"[DRY-RUN] {action} {data}")
+            return True
+
         elapsed = time.time() - self.last_order_time
         if elapsed < self.cooldown:
             time.sleep(self.cooldown - elapsed)
@@ -63,6 +74,10 @@ class ExecutorManager:
         """
         Place a market buy order for a given USDT amount, record entry price and quantity.
         """
+        if self.dry_run:
+            logger.info(f"[DRY-RUN] BUY {symbol} {usdt_amount}")
+            return
+
         try:
             ticker = self.client.get_symbol_ticker(symbol=symbol)
             price = float(ticker.get('price', 0))
@@ -92,8 +107,7 @@ class ExecutorManager:
 
         self.open_positions[symbol] = {
             'entry_price': entry_price,
-            'quantity': quantity,
-            'timestamp': datetime.utcnow()
+            'quantity': quantity
         }
         logger.info(f"EXECUTOR BUY {symbol}: qty={quantity}, entry={entry_price}")
         time.sleep(self.cooldown)
@@ -103,6 +117,10 @@ class ExecutorManager:
         Close an existing open position with a market sell order,
         calculate PnL and record the closed position.
         """
+        if self.dry_run:
+            logger.info(f"[DRY-RUN] SELL {symbol}")
+            return
+
         position = self.open_positions.get(symbol)
         if not position:
             logger.info(f"EXECUTOR SELL {symbol}: no open position to close.")
@@ -137,8 +155,7 @@ class ExecutorManager:
             'entry_price': entry_price,
             'exit_price': exit_price,
             'quantity': quantity,
-            'pnl': pnl,
-            'closed_at': datetime.utcnow()
+            'pnl': pnl
         })
         self.open_positions.pop(symbol, None)
 
@@ -156,3 +173,4 @@ class ExecutorManager:
         Return a record of closed positions with PnL details.
         """
         return list(self.closed_positions)
+

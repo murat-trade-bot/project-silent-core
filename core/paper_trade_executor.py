@@ -33,7 +33,7 @@ class PaperTradeExecutor:
         if not os.path.isfile(csv_file):
             with open(csv_file, 'w', newline='') as f:
                 writer = csv.writer(f)
-                writer.writerow(['timestamp', 'symbol', 'action', 'quantity', 'price', 'pnl'])
+                writer.writerow(['symbol', 'action', 'quantity', 'price', 'pnl'])
 
     def get_balance(self, asset: str) -> float:
         if asset.upper() == 'USDT':
@@ -116,12 +116,11 @@ class PaperTradeExecutor:
             # HOLD action
             return {'action': action, 'quantity': 0.0, 'price': price, 'pnl': 0.0}
 
-        # Log to CSV
-        timestamp = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+        # Log to CSV (timestamp kaldırıldı, diğer modüllerle uyumlu)
         with open(settings.CSV_LOG_FILE, 'a', newline='') as f:
             writer = csv.writer(f)
             writer.writerow([
-                timestamp, symbol, action, round(qty, 6), round(price, 2), round(pnl, 2)
+                symbol, action, round(qty, 6), round(price, 2), round(pnl, 2)
             ])
 
         logger.log(f"[PAPER] {action} {qty:.6f} {base_asset} @ {price:.2f}, PnL: {pnl:.2f}")

@@ -1,132 +1,131 @@
 """
-Module: onchain_tracking.py
-Tracks on-chain metrics such as whale transactions, exchange inflows/outflows,
-network activity, and mining activity with caching and robust error handling.
+Onchain Tracking Module
+Büyük transferleri, balina hareketlerini, aktif adresleri ve borsa giriş/çıkışlarını izler.
+Stealth mod, hata toleransı, retry/backoff ve dönemsel risk yönetimi için uygundur.
 """
-import time
-import random
-from datetime import datetime
-from typing import Any, Dict, List
 
+import requests
+import random
+import time
 from core.logger import BotLogger
 from config import settings
-from anti_binance_tespit import anti_detection
 
 logger = BotLogger()
 
-class OnchainTracker:
+class OnchainTracking:
     def __init__(self):
-        self.cache: Dict[str, Any] = {}
-        self.cache_expiry = getattr(settings, 'ONCHAIN_CACHE_EXPIRY', 1800)
-        self.whale_threshold = getattr(settings, 'WHALE_THRESHOLD_USD', 1_000_000)
-        self.api_timeout = getattr(settings, 'API_TIMEOUT', 10)
+        self.api_key = getattr(settings, "GLASSNODE_API_KEY", None)
+        self.base_url = "https://api.glassnode.com/v1/metrics"
+        self.headers = {"X-Api-Key": self.api_key, "User-Agent": "Mozilla/5.0 (compatible; Bot/1.0; +https://github.com/yourproject)"} if self.api_key else {}
 
-    def _get_cached(self, symbol: str) -> Any:
-        entry = self.cache.get(symbol)
-        if entry:
-            ts, val = entry
-            if time.time() - ts < self.cache_expiry:
-                return val
+    def _request_with_retry(self, url, params, retries=3):
+        for attempt in range(retries):
+            try:
+                time.sleep(random.uniform(0.3, 1.2))
+                r = requests.get(url, params=params, headers=self.headers, timeout=7)
+                if r.status_code == 429:
+                    logger.warning("OnchainTracking: API rate limit aşıldı (429). Kısa süre bekleniyor.")
+                    time.sleep(2)
+                    continue
+                r.raise_for_status()
+                return r.json()
+            except Exception as e:
+                logger.error(f"OnchainTracking: API error (attempt {attempt+1}): {e}")
+                time.sleep(1.5 * (attempt + 1))
+        logger.warning("OnchainTracking: API başarısız, dummy veri dönülüyor.")
         return None
 
-    def _set_cache(self, symbol: str, value: Any):
-        self.cache[symbol] = (time.time(), value)
-
-    def get_whale_transactions(self, symbol: str) -> List[Dict[str, Any]]:
+    def fetch_large_transfers(self, asset: str = "BTC") -> int:
+        """
+        Büyük transfer sayısını çeker (ör: Glassnode API).
+        """
+        if not self.api_key:
+            logger.warning("OnchainTracking: API anahtarı yok, dummy veri kullanılacak.")
+            return random.randint(0, 10)
+        url = f"{self.base_url}/transactions/transfers_volume_sum"
+        params = {"a": asset, "api_key": self.api_key}
+        data = self._request_with_retry(url, params)
         try:
-            anti_detection.check_rate_limit()
-            # Simulated whale transactions; replace with real API call as needed
-            time.sleep(random.uniform(0.5, 1.5))
-            txs: List[Dict[str, Any]] = []
-            if random.random() < 0.3:
-                txs.append({
-                    'from': '0x' + ''.join(random.choices('0123456789abcdef', k=40)),
-                    'to': '0x' + ''.join(random.choices('0123456789abcdef', k=40)),
-                    'value': random.uniform(self.whale_threshold, self.whale_threshold * 5),
-                    'timestamp': int(time.time())
-                })
-            return txs
+            value = int(data[-1]["v"]) if data else random.randint(0, 10)
         except Exception as e:
-            logger.error(f"[ONCHAIN] Whale tx error for {symbol}: {e}")
-            return []
+            logger.error(f"OnchainTracking: fetch_large_transfers veri hatası: {e}")
+            value = random.randint(0, 10)
+        logger.info(f"OnchainTracking: {asset} large transfers: {value}")
+        return value
 
-    def get_exchange_flows(self, symbol: str) -> Dict[str, Dict[str, float]]:
+    def fetch_active_addresses(self, asset: str = "BTC") -> int:
+        """
+        Aktif adres sayısını çeker.
+        """
+        if not self.api_key:
+            logger.warning("OnchainTracking: API anahtarı yok, dummy veri kullanılacak.")
+            return random.randint(100_000, 1_000_000)
+        url = f"{self.base_url}/addresses/active_count"
+        params = {"a": asset, "api_key": self.api_key}
+        data = self._request_with_retry(url, params)
         try:
-            anti_detection.check_rate_limit()
-            # Simulated exchange flows; replace with real API calls as needed
-            time.sleep(random.uniform(0.5, 1.5))
-            exchanges = getattr(settings, 'EXCHANGE_LIST', ['Binance', 'Coinbase', 'Kraken', 'Bitfinex'])
-            flows: Dict[str, Dict[str, float]] = {}
-            for ex in exchanges:
-                inflow = random.uniform(0, self.whale_threshold)
-                outflow = random.uniform(0, self.whale_threshold)
-                flows[ex] = {
-                    'inflow': inflow,
-                    'outflow': outflow,
-                    'net': inflow - outflow
-                }
-            return flows
+            value = int(data[-1]["v"]) if data else random.randint(100_000, 1_000_000)
         except Exception as e:
-            logger.error(f"[ONCHAIN] Exchange flows error for {symbol}: {e}")
-            return {}
+            logger.error(f"OnchainTracking: fetch_active_addresses veri hatası: {e}")
+            value = random.randint(100_000, 1_000_000)
+        logger.info(f"OnchainTracking: {asset} active addresses: {value}")
+        return value
 
-    def get_network_activity(self, symbol: str) -> Dict[str, Any]:
+    def fetch_exchange_flows(self, asset: str = "BTC") -> float:
+        """
+        Borsalara giriş/çıkış miktarını çeker.
+        """
+        if not self.api_key:
+            logger.warning("OnchainTracking: API anahtarı yok, dummy veri kullanılacak.")
+            return random.uniform(-5000, 5000)
+        url = f"{self.base_url}/distribution/exchange_net_position_change"
+        params = {"a": asset, "api_key": self.api_key}
+        data = self._request_with_retry(url, params)
         try:
-            anti_detection.check_rate_limit()
-            time.sleep(random.uniform(0.5, 1.5))
-            activity = {
-                'transactions_24h': random.randint(50_000, 500_000),
-                'active_addresses_24h': random.randint(10_000, 200_000),
-                'average_transaction_value': random.uniform(100, 1_000),
-                'network_hash_rate': random.uniform(50, 500),
-                'difficulty': random.uniform(1_000, 10_000)
-            }
-            return activity
+            value = float(data[-1]["v"]) if data else random.uniform(-5000, 5000)
         except Exception as e:
-            logger.error(f"[ONCHAIN] Network activity error for {symbol}: {e}")
-            return {}
+            logger.error(f"OnchainTracking: fetch_exchange_flows veri hatası: {e}")
+            value = random.uniform(-5000, 5000)
+        logger.info(f"OnchainTracking: {asset} exchange net flow: {value}")
+        return value
 
-    def get_mining_activity(self, symbol: str) -> Dict[str, Any]:
-        try:
-            anti_detection.check_rate_limit()
-            time.sleep(random.uniform(0.5, 1.5))
-            pools = getattr(settings, 'MINING_POOLS', ['F2Pool', 'AntPool', 'BTC.com', 'Poolin', 'ViaBTC'])
-            mining: Dict[str, Any] = {}
-            for pool in pools:
-                mining[pool] = {
-                    'hashrate': random.uniform(10, 200),
-                    'blocks_found_24h': random.randint(0, 20),
-                    'active_miners': random.randint(500, 5_000)
-                }
-            return mining
-        except Exception as e:
-            logger.error(f"[ONCHAIN] Mining activity error for {symbol}: {e}")
-            return {}
+    def whale_alert_score(self, asset: str = "BTC", period_multiplier: float = 1.0) -> float:
+        """
+        Balina hareketlerine ve diğer zincir üstü metriklere göre dönemsel risk skoru üretir.
+        """
+        transfers = self.fetch_large_transfers(asset)
+        active_addresses = self.fetch_active_addresses(asset)
+        exchange_flow = self.fetch_exchange_flows(asset)
+        # Normalize ve ağırlıklandır
+        transfer_score = min(1.0, transfers / 10)
+        address_score = 1.0 - min(1.0, (active_addresses - 100_000) / 900_000)  # az aktif adres = yüksek risk
+        flow_score = min(1.0, abs(exchange_flow) / 5000)  # büyük giriş/çıkış = yüksek risk
+        # Kompozit skor, dönemsel ağırlık ile
+        score = (transfer_score * 0.5 + address_score * 0.3 + flow_score * 0.2) * period_multiplier
+        score = max(0, min(1, score))
+        logger.info(f"OnchainTracking: Composite whale alert score: {score:.2f}")
+        return score
 
-    def track_onchain_activity(self, symbol: str = 'BTCUSDT') -> Dict[str, Any]:
-        # Return cached data if valid
-        cached = self._get_cached(symbol)
-        if cached is not None:
-            return cached
-
-        whale = self.get_whale_transactions(symbol)
-        flows = self.get_exchange_flows(symbol)
-        net_act = self.get_network_activity(symbol)
-        mine_act = self.get_mining_activity(symbol)
-
-        data = {
-            'whale_transactions': whale,
-            'exchange_flows': flows,
-            'network_activity': net_act,
-            'mining_activity': mine_act,
-            'timestamp': int(time.time())
+    def dry_run(self):
+        """
+        Test amaçlı örnek skor üretir.
+        """
+        logger.info("OnchainTracking: Dry-run başlatıldı.")
+        return {
+            "large_transfers": self.fetch_large_transfers(),
+            "active_addresses": self.fetch_active_addresses(),
+            "exchange_flows": self.fetch_exchange_flows(),
+            "whale_alert_score": self.whale_alert_score()
         }
-        # Cache and return
-        self._set_cache(symbol, data)
-        return data
 
-# Global instance and helper
-onchain_tracker = OnchainTracker()
-
-def track_onchain_activity(symbol: str = 'BTCUSDT') -> Dict[str, Any]:
-    return onchain_tracker.track_onchain_activity(symbol)
+def track_onchain_activity(asset: str = "BTC") -> dict:
+    """
+    OnchainTracking sınıfını kullanarak zincir üstü temel metrikleri döndürür.
+    """
+    tracker = OnchainTracking()
+    return {
+        "large_transfers": tracker.fetch_large_transfers(asset),
+        "active_addresses": tracker.fetch_active_addresses(asset),
+        "exchange_flows": tracker.fetch_exchange_flows(asset),
+        "whale_alert_score": tracker.whale_alert_score(asset)
+    }
