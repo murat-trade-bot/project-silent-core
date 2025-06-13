@@ -13,7 +13,7 @@ def send_notification(message: str) -> dict:
     chat_id = settings.TELEGRAM_CHAT_ID
 
     if not (token and chat_id):
-        logger.warning("Telegram ayarları eksik. Bildirim gönderilemedi.")
+        logger.warning("Telegram api ayarları eksik. Bildirim gönderilemedi.")
         return {}
 
     url = f"https://api.telegram.org/bot{token}/sendMessage"
