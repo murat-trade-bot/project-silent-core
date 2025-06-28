@@ -1,7 +1,6 @@
 """
-Sentiment Analysis Module
-Çeşitli haber ve sosyal medya kaynaklarından duygu skoru toplar.
-Stealth modda, rastgele zamanlama ve hata toleransı ile çalışır.
+Sentiment Analysis Module 
+Sadece Twitter ve NewsAPI ile çalışır.
 """
 
 import requests
@@ -14,7 +13,6 @@ logger = BotLogger()
 
 class SentimentAnalysis:
     def __init__(self):
-        # API anahtarlarını settings dosyasından çek
         try:
             from config import settings
             self.twitter_bearer = getattr(settings, "TWITTER_BEARER_TOKEN", None)
@@ -24,29 +22,24 @@ class SentimentAnalysis:
             self.news_api_key = None
 
     def fetch_twitter_sentiment(self, query: str = "bitcoin") -> Optional[float]:
-        """
-        Twitter'dan son tweetleri çekip basit bir duygu skoru hesaplar.
-        User-Agent başlığı ve rate limit toleransı eklenmiştir.
-        """
+        """Twitter sentiment - yoksa None döner"""
         if not self.twitter_bearer:
-            logger.warning("Twitter API anahtarı yok, sentiment atlanıyor.")
+            logger.info("Twitter API anahtarı yok, twitter sentiment atlanıyor.")
             return None
+        
         url = f"https://api.twitter.com/2/tweets/search/recent?query={query}&max_results=10"
         headers = {
             "Authorization": f"Bearer {self.twitter_bearer}",
             "User-Agent": "Mozilla/5.0 (compatible; Bot/1.0; +https://github.com/yourproject)"
         }
         try:
-            # Stealth: Rastgele gecikme
             time.sleep(random.uniform(0.5, 2.0))
             resp = requests.get(url, headers=headers, timeout=10)
             if resp.status_code == 429:
-                logger.warning("Twitter rate limit aşıldı (429). Kısa süre bekleniyor.")
-                time.sleep(2)
+                logger.warning("Twitter rate limit aşıldı (429). Twitter sentiment atlanıyor.")
                 return None
             resp.raise_for_status()
             tweets = resp.json().get("data", [])
-            # Basit duygu analizi: pozitif/negatif kelime sayısı
             pos_words = ["bull", "moon", "pump", "profit", "win"]
             neg_words = ["bear", "dump", "loss", "crash", "rekt"]
             score = 0
@@ -57,14 +50,11 @@ class SentimentAnalysis:
             logger.info(f"Twitter sentiment score: {score}")
             return score / max(len(tweets), 1)
         except Exception as e:
-            logger.error(f"Twitter sentiment fetch error: {e}")
+            logger.warning(f"Twitter sentiment hatası: {e}")
             return None
 
     def fetch_news_sentiment(self, query: str = "bitcoin") -> Optional[float]:
-        """
-        Google News veya NewsAPI'den haber başlıkları çekip duygu skoru hesaplar.
-        User-Agent başlığı ve rate limit toleransı eklenmiştir.
-        """
+        """News sentiment"""
         if not self.news_api_key:
             logger.warning("News API anahtarı yok, sentiment atlanıyor.")
             return None
@@ -73,7 +63,6 @@ class SentimentAnalysis:
             "User-Agent": "Mozilla/5.0 (compatible; Bot/1.0; +https://github.com/yourproject)"
         }
         try:
-            # Stealth: Rastgele gecikme
             time.sleep(random.uniform(0.5, 2.0))
             resp = requests.get(url, headers=headers, timeout=10)
             if resp.status_code == 429:
@@ -96,9 +85,7 @@ class SentimentAnalysis:
             return None
 
     def get_overall_sentiment(self, query: str = "bitcoin") -> float:
-        """
-        Twitter ve haber skorlarının ortalamasını döndürür.
-        """
+        """Twitter ve haber skorlarının ortalaması"""
         twitter_score = self.fetch_twitter_sentiment(query)
         news_score = self.fetch_news_sentiment(query)
         scores = [s for s in [twitter_score, news_score] if s is not None]
@@ -110,8 +97,6 @@ class SentimentAnalysis:
         return avg_score
 
 def analyze_sentiment(query: str = "bitcoin") -> float:
-    """
-    SentimentAnalysis sınıfını kullanarak genel sentiment skorunu döndürür.
-    """
+    """SentimentAnalysis sınıfını kullanarak genel sentiment skorunu döndürür."""
     sa = SentimentAnalysis()
     return sa.get_overall_sentiment(query)

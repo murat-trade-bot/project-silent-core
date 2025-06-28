@@ -1,0 +1,6 @@
+BAŞLANGIÇ_SERMEYESİ = 252.0
+IŞLEM_MIKTARI = 20.0
+TRADE_INTERVAL = 30
+MIN_BAKIYE = 10.0
+
+# ...diğer ayar ve sabitler...

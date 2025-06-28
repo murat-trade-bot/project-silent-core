@@ -44,7 +44,8 @@ class BotEngine:
                             amount = dyn_amount if dyn_amount is not None else amount
 
                         if action == 'BUY':
-                            self.executor.buy(symbol, amount)
+                            # self.executor.buy(symbol, amount)
+                            self.executor.place_order("BUY")
                         elif action == 'SELL':
                             self.executor.sell(symbol)
 

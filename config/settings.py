@@ -8,7 +8,7 @@ Loads environment variables and provides typed parameters for bot operation.
 """
 
 # --- API Keys (Yukarıda ve belirgin şekilde) ---
-# Binance, Telegram, News, Twitter, Onchain gibi tüm API anahtarları burada toplanır.
+# Binance, Telegram, News, Twitter gibi tüm API anahtarları burada toplanır.
 
 # Load .env file
 load_dotenv()
@@ -33,9 +33,6 @@ TWITTER_API_KEY            = _get_env("TWITTER_API_KEY", default="")
 TWITTER_API_SECRET         = _get_env("TWITTER_API_SECRET", default="")
 TWITTER_ACCESS_TOKEN       = _get_env("TWITTER_ACCESS_TOKEN", default="")
 TWITTER_ACCESS_TOKEN_SECRET= _get_env("TWITTER_ACCESS_TOKEN_SECRET", default="")
-
-# --- Onchain API Key ---
-ONCHAIN_API_KEY = _get_env("ONCHAIN_API_KEY", default="")
 
 # --- Dynamic Altcoin Selection Flag ---
 USE_DYNAMIC_SYMBOL_SELECTION = _get_env("USE_DYNAMIC_SYMBOL_SELECTION", "True").lower() in ("true","1","yes")

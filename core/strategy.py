@@ -5,7 +5,6 @@ from config import settings
 from modules.time_strategy import get_current_strategy_mode
 from core.logger import BotLogger
 from modules.sentiment_analysis import analyze_sentiment
-from modules.onchain_tracking import track_onchain_activity
 from modules.technical_analysis import (
     fetch_ohlcv_from_binance,
     calculate_rsi,
@@ -17,8 +16,8 @@ logger = BotLogger()
 
 class Strategy:
     """
-    Decision engine combining multi-timeframe technicals, sentiment & on-chain signals,
-    regime detection via time strategy, and dynamic risk management for fully autonomous trading.
+    Decision engine combining multi-timeframe technicals, sentiment & regime detection via time strategy,
+    and dynamic risk management for fully autonomous trading.
     Supports BUY, SELL, HOLD decisions with minimum hold time and optional TP/SL enforcement.
     """
     MIN_HOLD_TIME = timedelta(minutes=5)
@@ -35,7 +34,7 @@ class Strategy:
 
     def _get_signals(self, symbol):
         """
-        Fetch market data and compute technical, sentiment, on-chain signals, plus last price.
+        Fetch market data and compute technical and sentiment signals, plus last price.
         """
         # 1. Fetch OHLCV data
         ohlcv = fetch_ohlcv_from_binance(
@@ -57,9 +56,6 @@ class Strategy:
         # 3. Sentiment score
         sentiment_score = analyze_sentiment(symbol)
 
-        # 4. On-chain activity
-        whale_activity = track_onchain_activity(symbol)
-
         return {
             'price': latest_price,
             'rsi': rsi,
@@ -67,7 +63,6 @@ class Strategy:
             'macd_signal': macd_signal[-1] if macd_signal else 0,
             'atr': atr,
             'sentiment': sentiment_score,
-            'onchain': whale_activity
         }
 
     def decide(self, symbol):
@@ -106,13 +101,12 @@ class Strategy:
         if (
             signals['rsi'] > settings.RSI_OVERBOUGHT or
             signals['macd'] < signals['macd_signal'] or
-            signals['sentiment'] < -getattr(settings, 'SENTIMENT_THRESHOLD', 0) or
-            signals['onchain'].get('large_sells', False)
+            signals['sentiment'] < -getattr(settings, 'SENTIMENT_THRESHOLD', 0)
         ):
             logger.info(
                 f"Signal SELL for {symbol}: RSI={signals['rsi']}, "
                 f"MACD={signals['macd']}<{signals['macd_signal']}, "
-                f"Sentiment={signals['sentiment']}, OnChain={signals['onchain']}"
+                f"Sentiment={signals['sentiment']}"
             )
             self.position_open_time.pop(symbol, None)
             self.entry_prices.pop(symbol, None)

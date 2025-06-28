@@ -2,17 +2,15 @@ import time
 from modules.portfolio_manager import PortfolioManager
 from modules.technical_analysis import *
 from modules.sentiment_analysis import SentimentAnalysis
-from modules.onchain_tracking import OnchainTracking
 from core.logger import BotLogger
 
 logger = BotLogger()
 
 portfolio_manager = PortfolioManager()
 sentiment = SentimentAnalysis()
-onchain = OnchainTracking()
 
-TARGET_USDT = 3_580_122
-PERIODS = 6
+TARGET_USDT =   # Hedef USDT bakiyesi
+PERIODS = 
 
 def fetch_balances_func(assets):
     # Burada gerçek bakiyeleri döndüren fonksiyonunuzu eklemelisiniz.
@@ -31,7 +29,6 @@ def main_loop():
         total_balance = sum(balances.values())
         # ta_signals = ... # teknik analiz sonuçları
         sentiment_score = sentiment.get_overall_sentiment()
-        onchain_score = onchain.whale_alert_score()
         actions = portfolio_manager.rebalance(balances, total_balance)
         for action in actions:
             execute_order(action)
