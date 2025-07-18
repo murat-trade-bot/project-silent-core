@@ -37,7 +37,8 @@ BINANCE_API_KEY = os.getenv("BINANCE_API_KEY")
 BINANCE_API_SECRET = os.getenv("BINANCE_API_SECRET")
 TWITTER_BEARER_TOKEN = os.getenv("TWITTER_BEARER_TOKEN")
 COINGECKO_API_URL = "https://api.coingecko.com/api/v3"
-USE_TWITTER_ANALYSIS = os.getenv("USE_TWITTER_ANALYSIS", "True").lower() == "true"
+USE_TWITTER_ANALYSIS = os.getenv("USE_TWITTER_ANALYSIS", "False").lower() == "true"
+MIN_SCORE_PCT = float(os.getenv("MIN_SCORE_PCT", "0.5"))  # Karar eşiği yüzdesi (default %50)
 
 # --- Logger ayarı ---
 logging.basicConfig(level=logging.INFO)
@@ -48,6 +49,9 @@ class BinanceAnalyzer:
     def __init__(self, symbol="BTCUSDT"):
         self.symbol = symbol
         self.client = Client(BINANCE_API_KEY, BINANCE_API_SECRET)
+        # Testnet modu için URL ayarı
+        if os.getenv("TESTNET_MODE", "False").lower() == "True":
+            self.client.API_URL = 'https://testnet.binance.vision/api'
         self.order_book = None
         self.recent_trades = deque(maxlen=500)
         self.large_trades = []
@@ -195,6 +199,22 @@ class SimpleTrendPredictor:
             logger.error(f"ML tahmini yapılamadı: {e}")
             return None
 
+# --- RSI hesaplama fonksiyonu ---
+def calculate_rsi(prices, period=14):
+    """Basit RSI hesaplama fonksiyonu"""
+    if len(prices) < period + 1:
+        return 50  # Nötr RSI
+    deltas = np.diff(prices)
+    ups = deltas.clip(min=0)
+    downs = -deltas.clip(max=0)
+    avg_gain = np.mean(ups[-period:])
+    avg_loss = np.mean(downs[-period:])
+    if avg_loss == 0:
+        return 100
+    rs = avg_gain / avg_loss
+    rsi = 100 - (100 / (1 + rs))
+    return rsi
+
 # --- Ana analiz fonksiyonu ---
 def run_onchain_alternative(symbol="BTCUSDT", coin_id="bitcoin"):
     """Gelişmiş analiz ve sinyal üretimi"""
@@ -214,7 +234,7 @@ def run_onchain_alternative(symbol="BTCUSDT", coin_id="bitcoin"):
         results["volume_24h"] = volume_24h
 
         # === TWITTER SENTIMENT (OPSIYONEL) ===
-        if USE_TWITTER_ANALYSIS:
+        if USE_TWITTER_ANALYSIS and TWITTER_BEARER_TOKEN and TWITTER_BEARER_TOKEN != "...":
             try:
                 twitter = TwitterSentimentAnalyzer(query=symbol.replace("USDT", ""))
                 tweets = twitter.fetch_tweets()
@@ -347,16 +367,18 @@ def run_onchain_alternative(symbol="BTCUSDT", coin_id="bitcoin"):
                 score_details["sentiment"] = "Nötr (0/1)"
 
         # === KARAR ALGORİTMASI ===
-        min_required_score = max(4, max_score * 0.6)  # En az %60 puan gerekli
+        # Ayarlanabilir karar eşiği: minimal gereken puan yüzdesi
+        min_required_score = max_score * MIN_SCORE_PCT  # min %50 default, env üzerinden ayarlanabilir
         
         if len(risk_flags) > 0:
             trade_signal = "WAIT"
             decision_reason = f"Risk var: {', '.join(risk_flags)}"
         elif score >= min_required_score:
-            if price_trend > 0.1:
+            # Fiyat trend eşikleri %0.05 olarak gevşetildi
+            if price_trend > 0.05:
                 trade_signal = "BUY"
                 decision_reason = f"Pozitif trend, güçlü sinyal (Score: {score}/{max_score})"
-            elif price_trend < -0.1:
+            elif price_trend < -0.05:
                 trade_signal = "SELL"
                 decision_reason = f"Negatif trend, sat sinyali (Score: {score}/{max_score})"
             else:
@@ -395,14 +417,37 @@ def get_trade_signal(symbol="BTCUSDT", coin_id="bitcoin"):
     """
     onchain_data = run_onchain_alternative(symbol=symbol, coin_id=coin_id)
     
-    # run_onchain_alternative'den gelen trade_signal'i direkt kullan
-    trade_signal = onchain_data.get("trade_signal", "WAIT")
-    
+    # Fiyat ve indikatör verilerini çek
+    binance = BinanceAnalyzer(symbol)
+    binance.fetch_recent_trades()
+    price_now = float(binance.recent_trades[-1]['price']) if binance.recent_trades else 0
+    price_5min_ago = float(binance.recent_trades[-6]['price']) if len(binance.recent_trades) > 5 else 0  # 5 dakika önceki fiyat
+
+    # --- RSI hesaplama ---
+    recent_prices = [float(trade['price']) for trade in binance.recent_trades]
+    rsi = calculate_rsi(recent_prices, period=14)
+    # --- Hacim ---
+    binance.fetch_24h_volume()
+    volume = binance.volume_24h if binance.volume_24h else 0
+
+    # Kâr odaklı basit mantık:
+    if price_now > price_5min_ago * 1.002 and rsi < 70 and volume > 10000:
+        trade_signal = "BUY"
+    elif price_now < price_5min_ago * 0.998 and rsi > 30 and volume > 10000:
+        trade_signal = "SELL"
+    else:
+        trade_signal = onchain_data.get("trade_signal", "WAIT")
+        decision_reason = onchain_data.get("decision_reason", "Belirsiz")
+
+    # Sonuçları üst seviye döndür, score ve reason dahil
     return {
         "trade_signal": trade_signal,
         "whale_score": onchain_data.get("whale_score", 0),
         "twitter_sentiment": onchain_data.get("twitter_sentiment", 0),
         "marketcap": onchain_data.get("marketcap", 0),
+        "score": onchain_data.get("score", 0),
+        "max_score": onchain_data.get("max_score", 0),
+        "decision_reason": decision_reason,
         "onchain_data": onchain_data
     }
 
