@@ -8,6 +8,136 @@ from modules.performance_optimization import PerformanceOptimization
 from modules.dynamic_position import DynamicPosition
 
 class Strategy:
+    def run_three_day_target_simulation(self, price_data, market_data, print_report=True):
+        """
+        3 gün boyunca, her gün %6 net kâr hedefiyle, coin seçimi ve işlem döngüsü uygular.
+        Her günün sonunda yapılan işlemler ve gün sonu raporu detaylı olarak yazdırılır.
+        price_data: {'BTCUSDT': [fiyat1, fiyat2, ...], ...} (her coin için 3 günlük fiyat listesi)
+        market_data: {'BTCUSDT': [fiyat1, fiyat2, ...], ...} (volatilite için)
+        print_report: True ise gün sonu raporları ekrana yazdırılır.
+        """
+        daily_targets = [
+            {"start": 252, "target": 267.12, "profit": 15.12},
+            {"start": 267.12, "target": 283.12, "profit": 16},
+            {"start": 283.12, "target": 300, "profit": 16.98},
+        ]
+        balance = daily_targets[0]["start"]
+        log = []
+        for day in range(3):
+            day_info = daily_targets[day]
+            day_report = []
+            if print_report:
+                print(f"\n--- {day+1}. Gün Başlangıç Bakiye: {balance:.2f} USDT, Hedef: {day_info['target']} ---")
+            self.logger.info(f"--- {day+1}. Gün Başlangıç Bakiye: {balance:.2f} USDT, Hedef: {day_info['target']} ---")
+            # En volatil 2 coini seç
+            volatile_coins = self.select_most_volatile_coins(market_data, top_n=2)
+            if print_report:
+                print(f"{day+1}. Gün için seçilen coinler: {volatile_coins}")
+            self.logger.info(f"{day+1}. Gün için seçilen coinler: {volatile_coins}")
+            # Her coin için gün boyu işlem simülasyonu (örnek: 24 fiyat barı)
+            positions = {symbol: 0 for symbol in volatile_coins}
+            daily_profit = 0
+            for symbol in volatile_coins:
+                prices = price_data.get(symbol, [])
+                if len(prices) < day+1:
+                    continue
+                price = prices[day]  # O günkü fiyat
+                # Basit al-sat stratejisi: Eğer pozisyon yoksa al, varsa hedefe ulaşınca sat
+                if positions[symbol] == 0 and balance > 0:
+                    buy_amount = (balance / len(volatile_coins)) / price
+                    positions[symbol] += buy_amount
+                    balance -= buy_amount * price
+                    msg = f"{symbol} ALIM: {buy_amount:.4f} adet, fiyat: {price:.2f}"
+                    day_report.append(msg)
+                    self.logger.info(msg)
+                # Satış: %6 kâr hedefi veya gün sonu
+                entry_price = price  # Basitlik için aynı gün al-sat
+                target_price = entry_price * 1.06
+                if positions[symbol] > 0 and price >= target_price:
+                    sell_amount = positions[symbol]
+                    profit = sell_amount * (price - entry_price)
+                    balance += sell_amount * price
+                    daily_profit += profit
+                    positions[symbol] = 0
+                    msg = f"{symbol} SATIM: {sell_amount:.4f} adet, fiyat: {price:.2f}, Kâr: {profit:.2f}"
+                    day_report.append(msg)
+                    self.logger.info(msg)
+            # Gün sonu kalan pozisyonları sat
+            for symbol in volatile_coins:
+                if positions[symbol] > 0:
+                    price = price_data[symbol][day]
+                    sell_amount = positions[symbol]
+                    profit = sell_amount * (price - price)  # Aynı fiyattan satılıyor, kâr yok
+                    balance += sell_amount * price
+                    positions[symbol] = 0
+                    msg = f"{symbol} GÜN SONU SATIM: {sell_amount:.4f} adet, fiyat: {price:.2f}, Kâr: {profit:.2f}"
+                    day_report.append(msg)
+                    self.logger.info(msg)
+            # Günlük hedef kontrolü
+            achieved = balance >= day_info["target"]
+            summary = f"{day+1}. Gün Sonu Bakiye: {balance:.2f} USDT, Hedef: {day_info['target']}, Hedefe Ulaşıldı mı? {achieved}"
+            if print_report:
+                print("\n--- Gün Sonu Raporu ---")
+                for item in day_report:
+                    print(item)
+                print(summary)
+            self.logger.info(summary)
+            log.append({
+                "day": day+1,
+                "start_balance": day_info["start"],
+                "end_balance": balance,
+                "target": day_info["target"],
+                "achieved": achieved,
+                "day_report": day_report,
+                "summary": summary
+            })
+        return log
+            # En volatil 2 coini seç
+            volatile_coins = self.select_most_volatile_coins(market_data, top_n=2)
+            self.logger.info(f"{day+1}. Gün için seçilen coinler: {volatile_coins}")
+            # Her coin için gün boyu işlem simülasyonu (örnek: 24 fiyat barı)
+            positions = {symbol: 0 for symbol in volatile_coins}
+            daily_profit = 0
+            for symbol in volatile_coins:
+                prices = price_data.get(symbol, [])
+                if len(prices) < day+1:
+                    continue
+                price = prices[day]  # O günkü fiyat
+                # Basit al-sat stratejisi: Eğer pozisyon yoksa al, varsa hedefe ulaşınca sat
+                if positions[symbol] == 0 and balance > 0:
+                    buy_amount = (balance / len(volatile_coins)) / price
+                    positions[symbol] += buy_amount
+                    balance -= buy_amount * price
+                    self.logger.info(f"{symbol} ALIM: {buy_amount:.4f} adet, fiyat: {price:.2f}")
+                # Satış: %6 kâr hedefi veya gün sonu
+                entry_price = price  # Basitlik için aynı gün al-sat
+                target_price = entry_price * 1.06
+                if positions[symbol] > 0 and price >= target_price:
+                    sell_amount = positions[symbol]
+                    profit = sell_amount * (price - entry_price)
+                    balance += sell_amount * price
+                    daily_profit += profit
+                    positions[symbol] = 0
+                    self.logger.info(f"{symbol} SATIM: {sell_amount:.4f} adet, fiyat: {price:.2f}, Kâr: {profit:.2f}")
+            # Gün sonu kalan pozisyonları sat
+            for symbol in volatile_coins:
+                if positions[symbol] > 0:
+                    price = price_data[symbol][day]
+                    sell_amount = positions[symbol]
+                    profit = sell_amount * (price - price)  # Aynı fiyattan satılıyor, kâr yok
+                    balance += sell_amount * price
+                    positions[symbol] = 0
+            # Günlük hedef kontrolü
+            achieved = balance >= day_info["target"]
+            self.logger.info(f"{day+1}. Gün Sonu Bakiye: {balance:.2f} USDT, Hedefe Ulaşıldı mı? {achieved}")
+            log.append({
+                "day": day+1,
+                "start_balance": day_info["start"],
+                "end_balance": balance,
+                "target": day_info["target"],
+                "achieved": achieved
+            })
+        return log
     def __init__(self):
         self.last_action = {}
         self.last_buy_price = {}
