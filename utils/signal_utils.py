@@ -40,3 +40,32 @@ def safe_get_trade_signal(symbol: str, coin_id: str) -> dict:
                 logger.error(f"Sinyal alınırken hata ({symbol}): {e}")
                 return {"trade_signal": "WAIT", "whale_score": 0, "twitter_sentiment": 0, "price_trend": 0}
     return {"trade_signal": "WAIT", "whale_score": 0, "twitter_sentiment": 0, "price_trend": 0}
+
+def calculate_rsi(closes, period=14):
+    if len(closes) < period:
+        return [None] * len(closes)
+    deltas = [closes[i] - closes[i-1] for i in range(1, len(closes))]
+    gains = [delta if delta > 0 else 0 for delta in deltas]
+    losses = [-delta if delta < 0 else 0 for delta in deltas]
+    avg_gain = sum(gains[:period]) / period
+    avg_loss = sum(losses[:period]) / period
+    rsi = []
+    for i in range(period, len(closes)):
+        if i == period:
+            rs = avg_gain / avg_loss if avg_loss != 0 else 0
+        else:
+            avg_gain = (avg_gain * (period - 1) + gains[i-1]) / period
+            avg_loss = (avg_loss * (period - 1) + losses[i-1]) / period
+            rs = avg_gain / avg_loss if avg_loss != 0 else 0
+        rsi.append(100 - (100 / (1 + rs)))
+    return [None] * (period) + rsi
+
+def calculate_ema(closes, period=9):
+    if len(closes) < period:
+        return [None] * len(closes)
+    ema = []
+    k = 2 / (period + 1)
+    ema.append(sum(closes[:period]) / period)
+    for price in closes[period:]:
+        ema.append(price * k + ema[-1] * (1 - k))
+    return [None] * (period - 1) + ema

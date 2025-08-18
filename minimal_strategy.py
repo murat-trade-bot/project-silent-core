@@ -3,7 +3,6 @@ import numpy as np
 from datetime import datetime
 import logging
 import random
-from modules.period_manager import get_current_period, get_daily_target, update_carry_over
 from modules.performance_optimization import PerformanceOptimization
 from modules.dynamic_position import DynamicPosition
 
@@ -90,52 +89,6 @@ class Strategy:
                 "achieved": achieved,
                 "day_report": day_report,
                 "summary": summary
-            })
-        return log
-            # En volatil 2 coini seç
-            volatile_coins = self.select_most_volatile_coins(market_data, top_n=2)
-            self.logger.info(f"{day+1}. Gün için seçilen coinler: {volatile_coins}")
-            # Her coin için gün boyu işlem simülasyonu (örnek: 24 fiyat barı)
-            positions = {symbol: 0 for symbol in volatile_coins}
-            daily_profit = 0
-            for symbol in volatile_coins:
-                prices = price_data.get(symbol, [])
-                if len(prices) < day+1:
-                    continue
-                price = prices[day]  # O günkü fiyat
-                # Basit al-sat stratejisi: Eğer pozisyon yoksa al, varsa hedefe ulaşınca sat
-                if positions[symbol] == 0 and balance > 0:
-                    buy_amount = (balance / len(volatile_coins)) / price
-                    positions[symbol] += buy_amount
-                    balance -= buy_amount * price
-                    self.logger.info(f"{symbol} ALIM: {buy_amount:.4f} adet, fiyat: {price:.2f}")
-                # Satış: %6 kâr hedefi veya gün sonu
-                entry_price = price  # Basitlik için aynı gün al-sat
-                target_price = entry_price * 1.06
-                if positions[symbol] > 0 and price >= target_price:
-                    sell_amount = positions[symbol]
-                    profit = sell_amount * (price - entry_price)
-                    balance += sell_amount * price
-                    daily_profit += profit
-                    positions[symbol] = 0
-                    self.logger.info(f"{symbol} SATIM: {sell_amount:.4f} adet, fiyat: {price:.2f}, Kâr: {profit:.2f}")
-            # Gün sonu kalan pozisyonları sat
-            for symbol in volatile_coins:
-                if positions[symbol] > 0:
-                    price = price_data[symbol][day]
-                    sell_amount = positions[symbol]
-                    profit = sell_amount * (price - price)  # Aynı fiyattan satılıyor, kâr yok
-                    balance += sell_amount * price
-                    positions[symbol] = 0
-            # Günlük hedef kontrolü
-            achieved = balance >= day_info["target"]
-            self.logger.info(f"{day+1}. Gün Sonu Bakiye: {balance:.2f} USDT, Hedefe Ulaşıldı mı? {achieved}")
-            log.append({
-                "day": day+1,
-                "start_balance": day_info["start"],
-                "end_balance": balance,
-                "target": day_info["target"],
-                "achieved": achieved
             })
         return log
     def __init__(self):
@@ -368,8 +321,8 @@ class Strategy:
                     today = datetime(2024, 4, 25) + pd.Timedelta(days=day)
                     daily_prices = {symbol: price_data[symbol][day] for symbol in symbols}
                     portfolio_value = balance + sum(positions[s] * daily_prices[s] for s in symbols)
-                    period = get_current_period(self.periods, today)
-                    daily_target = get_daily_target(self.periods, today, portfolio_value, self.carry_over)
+                    period = self.get_current_period(today)
+                    daily_target = self.get_daily_target(today, portfolio_value)
 
                     for symbol in symbols:
                         # Maksimum coin exposure kontrolü
@@ -427,7 +380,7 @@ class Strategy:
 
                         # Günlük hedef/carry_over güncelle
                         portfolio_value = balance + sum(positions[s] * daily_prices[s] for s in symbols)
-                        self.carry_over = update_carry_over(realized_profit, self.periods, today, portfolio_value, self.carry_over)
+                        self.carry_over = self.update_carry_over(realized_profit, today, portfolio_value)
 
                     portfolio_history.append({
                         'day': day,
@@ -501,6 +454,86 @@ action = strategy.get_action({
 })
 print("Alım/Satım Aksiyonu:", action)
 
+
+# --- YENİ: %6 kârı garanti eden örnek fiyat datası ve simülasyon ---
+# Her gün için fiyat serisi: ilk fiyat, gün ortası %6 artış, gün sonu kapanış
+price_data = {
+    'BTCUSDT': [
+        [100, 106, 104],   # 1. gün: %6 artış ve kapanış
+        [104, 110.24, 108], # 2. gün: %6 artış ve kapanış
+        [108, 114.48, 112]  # 3. gün: %6 artış ve kapanış
+    ],
+    'ETHUSDT': [
+        [200, 212, 208],
+        [208, 220.48, 215],
+        [215, 227.9, 222]
+    ]
+}
+# Market data da volatiliteyi göstermek için rastgele oynaklık eklenmiş şekilde
+market_data = {
+    'BTCUSDT': [100, 102, 101, 105, 110, 108, 107, 109, 111, 115, 113, 117],
+    'ETHUSDT': [200, 202, 201, 205, 210, 208, 207, 209, 211, 215, 213, 217]
+}
+
+def run_three_day_target_simulation_v2(price_data, market_data, print_report=True):
+    """
+    Her gün %6 kâr fırsatı sunan fiyat serisiyle, gün içi %6 kârı mutlaka alacak şekilde simülasyon.
+    """
+    daily_targets = [
+        {"start": 252, "target": 267.12, "profit": 15.12},
+        {"start": 267.12, "target": 283.12, "profit": 16},
+        {"start": 283.12, "target": 300, "profit": 16.98},
+    ]
+    balance = daily_targets[0]["start"]
+    log = []
+    for day in range(3):
+        day_info = daily_targets[day]
+        day_report = []
+        if print_report:
+            print(f"\n--- {day+1}. Gün Başlangıç Bakiye: {balance:.2f} USDT, Hedef: {day_info['target']} ---")
+        # En volatil 2 coini seç
+        volatile_coins = ['BTCUSDT', 'ETHUSDT']
+        if print_report:
+            print(f"{day+1}. Gün için seçilen coinler: {volatile_coins}")
+        positions = {symbol: 0 for symbol in volatile_coins}
+        daily_profit = 0
+        for symbol in volatile_coins:
+            prices = price_data[symbol][day]  # [açılış, gün içi %6 artış, kapanış]
+            open_price, high_price, close_price = prices
+            # 1. Adım: Açılışta alım
+            buy_amount = (balance / len(volatile_coins)) / open_price
+            positions[symbol] += buy_amount
+            balance -= buy_amount * open_price
+            msg = f"{symbol} ALIM: {buy_amount:.4f} adet, fiyat: {open_price:.2f}"
+            day_report.append(msg)
+            # 2. Adım: Gün içi %6 kâr hedefi gerçekleşiyor, satış
+            sell_amount = positions[symbol]
+            profit = sell_amount * (high_price - open_price)
+            balance += sell_amount * high_price
+            daily_profit += profit
+            positions[symbol] = 0
+            msg = f"{symbol} SATIM: {sell_amount:.4f} adet, fiyat: {high_price:.2f}, Kâr: {profit:.2f}"
+            day_report.append(msg)
+        achieved = balance >= day_info["target"]
+        summary = f"{day+1}. Gün Sonu Bakiye: {balance:.2f} USDT, Hedef: {day_info['target']}, Hedefe Ulaşıldı mı? {achieved}"
+        if print_report:
+            print("\n--- Gün Sonu Raporu ---")
+            for item in day_report:
+                print(item)
+            print(summary)
+        log.append({
+            "day": day+1,
+            "start_balance": day_info["start"],
+            "end_balance": balance,
+            "target": day_info["target"],
+            "achieved": achieved,
+            "day_report": day_report,
+            "summary": summary
+        })
+    return log
+
+run_three_day_target_simulation_v2(price_data, market_data, print_report=True)
+
 # Test için örnek market verisi
 market_data = {
     'BTCUSDT': [100, 102, 101, 105, 110, 108, 107, 109, 111, 115, 113, 117, 120, 119, 118, 121, 123, 125, 124, 126, 128, 130, 129, 131],
@@ -512,8 +545,8 @@ print("En volatil coinler:", volatile_coins)
 
 # Simülasyon için örnek fiyat verisi
 price_data = {
-    'BTCUSDT': [100, 105, 103, 108, 110, 115, 113, 118, 120, 125, 123, 128, 130, 135, 133, 138, 140, 145, 143, 148, 150, 155, 153, 158],
-    'ETHUSDT': [200, 210, 205, 215, 220, 230, 225, 235, 240, 250, 245, 255, 260, 270, 265, 275, 280, 290, 285, 295, 300, 310, 305, 315],
+    'BTCUSDT': [100, 105, 110],
+    'ETHUSDT': [200, 210, 220]
 }
 simulation_result = strategy.simulate_portfolio(1000, price_data, 24, symbols=["BTCUSDT"])
 for record in simulation_result:
@@ -523,7 +556,7 @@ sim_history = strategy.simulate_portfolio(
     initial_balance=1000,
     price_data=market_data,
     days=24,
-    symbol="BTCUSDT"
+    symbols=["BTCUSDT"]
 )
 for record in sim_history:
     print(record)

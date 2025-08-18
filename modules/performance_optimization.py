@@ -8,7 +8,6 @@ import random
 import time
 from typing import Dict, Any, List, Callable
 from core.logger import BotLogger
-from modules.performance_optimization import PerformanceOptimization
 
 logger = BotLogger()
 
