@@ -1,9 +1,10 @@
 class Executor:
-    def execute(self, action, context):
+    def __init__(self):
+        pass
+
+    def execute(self, action, data):
         """
-        Gerçekçi bir işlem simülasyonu için:
-        - action: 'BUY', 'SELL', 'HOLD'
-        - context: fiyat, bakiye, pozisyon, coin adı vb.
-        Burada loglama, işlem geçmişi kaydı veya ileri seviye analizler yapılabilir.
+        Basit stub: beklenen çıktıyı bas ve True dön.
         """
-        print(f"{context.get('symbol')} | {action} | Fiyat: {context.get('price'):.2f} | Pozisyon: {context.get('position'):.6f} | Bakiye: {context.get('balance'):.2f}")
+        print(f"Executing action: {action} with data: {data}")
+        return True

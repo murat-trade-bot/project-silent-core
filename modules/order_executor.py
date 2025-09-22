@@ -227,7 +227,7 @@ class OrderExecutor:
             except Exception:
                 pass
 
-        # Emir gönder
+    # Emir gönder (price=None iken MARKET akışı doğal olarak seçilir)
         try:
             if order_type == "MARKET":
                 if side == "BUY":

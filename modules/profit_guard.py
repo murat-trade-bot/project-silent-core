@@ -2,7 +2,7 @@
 """
 Günlük kâr limiti ve otomatik durdurma modülü
 """
-import os
+import os as _os
 import json
 import datetime
 from typing import Optional
@@ -19,7 +19,7 @@ class ProfitGuard:
 
     def _load_state(self):
         today = datetime.date.today().isoformat()
-        if os.path.exists(self.state_file):
+        if _os.path.exists(self.state_file):
             with open(self.state_file, 'r') as f:
                 state = json.load(f)
             if state.get('date') == today:
@@ -99,7 +99,7 @@ def test_profit_guard():
     print('Kâr limiti geçti mi?', pg.check_limit(), pg.is_stopped())
     pg.reset_day()
     print('Reset sonrası:', pg.start_equity, pg.current_equity, pg.is_stopped())
-    os.remove(tmpfile)
+    _os.remove(tmpfile)
 
 if __name__ == "__main__":
     test_profit_guard()

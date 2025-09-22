@@ -60,12 +60,14 @@ def calculate_rsi(prices: List[float], period: int = 14) -> List[float]:
     losses = [abs(min(delta, 0)) for delta in deltas]
     avg_gain = sum(gains[:period]) / period
     avg_loss = sum(losses[:period]) / period
-    rsi = []
+    rsi: List[float] = []
     for i in range(period, len(prices)-1):
         avg_gain = (avg_gain * (period - 1) + gains[i]) / period
         avg_loss = (avg_loss * (period - 1) + losses[i]) / period
         rs = avg_gain / avg_loss if avg_loss != 0 else 0
         rsi.append(100 - (100 / (1 + rs)))
+    # Warmup döneminde eksik değerler için None bırakmayı tercih edebiliriz;
+    # burada basitçe hesaplananları döndürüyoruz, signals tarafı None filtreleyecek.
     return rsi
 
 def calculate_ema(prices: List[float], period: int) -> List[float]:
@@ -133,3 +135,74 @@ def calculate_momentum(prices: List[float], period: int = 10) -> List[float]:
         logger.warning("Momentum: Yetersiz veri.")
         return []
     return [prices[i] - prices[i - period] for i in range(period, len(prices))]
+
+def calculate_bbands(prices: List[float], period: int = 20, std_mult: float = 2.0) -> Tuple[List[float], List[float], List[float]]:
+    """Basit Bollinger Bantları (SMA±std*mult)."""
+    if len(prices) < period:
+        logger.warning("BBANDS: Yetersiz veri.")
+        return [], [], []
+    mids, uppers, lowers = [], [], []
+    for i in range(period - 1, len(prices)):
+        window = prices[i - period + 1:i + 1]
+        mid = sum(window) / period
+        var = sum((p - mid) ** 2 for p in window) / period
+        std = var ** 0.5
+        mids.append(mid)
+        uppers.append(mid + std_mult * std)
+        lowers.append(mid - std_mult * std)
+    return mids, uppers, lowers
+
+def calculate_vwap(ohlcv: List[Tuple[float, float, float, float, float, float]], lookback: int = 50) -> Optional[float]:
+    """VWAP ~ sum(price*volume)/sum(volume) son lookback bar için."""
+    if not ohlcv:
+        return None
+    data = ohlcv[-lookback:] if len(ohlcv) >= lookback else ohlcv
+    sum_pv = 0.0
+    sum_v = 0.0
+    for _, _o, _h, _l, c, v in data:
+        p = float(c)
+        vol = float(v)
+        sum_pv += p * vol
+        sum_v += vol
+    if sum_v <= 0:
+        return None
+    return sum_pv / sum_v
+
+def calculate_adx(ohlcv: List[Tuple[float, float, float, float, float, float]], period: int = 14) -> Optional[float]:
+    """Wilder ADX(14) basit uygulama, son değeri döndürür."""
+    if len(ohlcv) < period + 1:
+        logger.warning("ADX: Yetersiz veri.")
+        return None
+    highs = [x[2] for x in ohlcv]
+    lows = [x[3] for x in ohlcv]
+    closes = [x[4] for x in ohlcv]
+
+    trs, plus_dm, minus_dm = [], [], []
+    for i in range(1, len(ohlcv)):
+        high, low, prev_close = highs[i], lows[i], closes[i - 1]
+        trs.append(max(high - low, abs(high - prev_close), abs(low - prev_close)))
+        up_move = highs[i] - highs[i - 1]
+        down_move = lows[i - 1] - lows[i]
+        plus_dm.append(up_move if (up_move > down_move and up_move > 0) else 0.0)
+        minus_dm.append(down_move if (down_move > up_move and down_move > 0) else 0.0)
+
+    def wilder_smooth(vals: List[float], p: int) -> List[float]:
+        if len(vals) < p:
+            return []
+        smoothed = [sum(vals[:p])]
+        for v in vals[p:]:
+            smoothed.append(smoothed[-1] - (smoothed[-1] / p) + v)
+        return smoothed
+
+    trn = wilder_smooth(trs, period)
+    pDM = wilder_smooth(plus_dm, period)
+    mDM = wilder_smooth(minus_dm, period)
+    if not trn or not pDM or not mDM:
+        return None
+    di_plus = [100 * (p / t) if t else 0.0 for p, t in zip(pDM, trn)]
+    di_minus = [100 * (m / t) if t else 0.0 for m, t in zip(mDM, trn)]
+    dx = [100 * (abs(dp - dm) / (dp + dm)) if (dp + dm) else 0.0 for dp, dm in zip(di_plus, di_minus)]
+    adx_series = wilder_smooth(dx, period)
+    if not adx_series:
+        return None
+    return adx_series[-1] / period  # wilder smoothing scale back

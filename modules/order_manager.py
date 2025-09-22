@@ -8,7 +8,7 @@ from typing import Optional, Dict, Any
 
 
 import csv
-import os
+import os as _os
 
 class OrderManager:
     def __init__(self, client, symbol: str, qty: float, tp_pct: float = 0.4, sl_pct: float = 0.2, log_file: str = 'order_manager.log', csv_log: str = 'trade_history.csv'):
@@ -108,7 +108,7 @@ class OrderManager:
 
     def _log_trade_csv(self, entry_order, oco_order, fill_price):
         """Temel trade geçmişi CSV logu."""
-        file_exists = os.path.isfile(self.csv_log)
+        file_exists = _os.path.isfile(self.csv_log)
         with open(self.csv_log, 'a', newline='') as csvfile:
             writer = csv.writer(csvfile)
             if not file_exists:
@@ -119,8 +119,8 @@ class OrderManager:
                 fill_price,
                 self.symbol,
                 self.qty,
-                oco_order.get('orders', [{}])[0].get('price') if oco_order else None,
-                oco_order.get('orders', [{}])[-1].get('stopPrice') if oco_order else None
+                (oco_order.get('orders', [{}])[0].get('price') if oco_order else None),
+                (oco_order.get('orders', [{}])[-1].get('stopPrice') if oco_order else None)
             ])
 
     def get_order_status(self, order_id: str) -> Optional[Dict[str, Any]]:

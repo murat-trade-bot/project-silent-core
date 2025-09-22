@@ -17,6 +17,8 @@ Notlar:
 from __future__ import annotations
 
 from typing import Dict, List, Tuple, Optional, Any
+import math
+import os
 
 try:
     # Opsiyonel: ayarlardan eşik/varsayılanları al
@@ -287,3 +289,54 @@ def estimate_effective_price_and_costs(
         "pass_spread_limit": None if spr is None else (spr <= spread_limit),
         "insufficient_liquidity": bool(slip_info.get("insufficient_liquidity")),
     }
+
+
+# ==========================
+# Min notional güvenliği ve temel qty ayarı
+# ==========================
+def ensure_min_qty(symbol: str, price: float, qty: float, min_notional_usdt: float) -> float:
+    """
+    Min notional’dan küçükse qty’yi min notional’a çıkar.
+    Price/lot filtreleri ayrı uygulanır; burada sadece notional kontrol edilir.
+    """
+    try:
+        p = float(price or 0.0)
+        q = float(qty or 0.0)
+        mn = float(min_notional_usdt or 0.0)
+        notional = p * q
+        if p > 0.0 and notional + 1e-12 < mn:
+            needed_qty = mn / p
+            return max(needed_qty, q)
+        return q
+    except Exception:
+        return qty or 0.0
+
+# Uyum: İstenen imza ile aynı mantıkta alternatif isimlendirme; geriye dönük çağrılar için.
+def ensure_min_qty_alt(symbol: str, price: float, qty: float, min_notional_usdt: float) -> float:  # noqa: F401
+    try:
+        price = float(price or 0.0); qty = float(qty or 0.0)
+        if price <= 0.0:
+            return qty
+        notional = price * qty
+        if notional < float(min_notional_usdt):
+            needed = float(min_notional_usdt) / price
+            return max(needed, qty)
+        return qty
+    except Exception:
+        return qty or 0.0
+
+
+def adjust_qty_for_filters(symbol: str, qty: float) -> float:
+    """
+    Basit miktar düzeltme: negatif/None -> 0, 8 ondalık basamağa yuvarla.
+    Not: Gerçek LOT_SIZE/PRICE_FILTER uyarlaması exchange client ile yapılır (quantize).
+    """
+    try:
+        q = float(qty or 0.0)
+        if q <= 0:
+            return 0.0
+        # 8 basamakla sınırlı bir normalizasyon
+        q = math.floor(q * 1e8) / 1e8
+        return q
+    except Exception:
+        return 0.0

@@ -3,14 +3,14 @@
 Detaylı ve merkezi loglama sistemi
 """
 import logging
-import os
+import os as _os
 from logging.handlers import RotatingFileHandler
 
 LOG_DIR = 'logs'
-LOG_FILE = os.path.join(LOG_DIR, 'bot.log')
+LOG_FILE = _os.path.join(LOG_DIR, 'bot.log')
 
-if not os.path.exists(LOG_DIR):
-    os.makedirs(LOG_DIR)
+if not _os.path.exists(LOG_DIR):
+    _os.makedirs(LOG_DIR)
 
 class BotLogger:
     @staticmethod

@@ -26,7 +26,7 @@ Kullanım (özet):
 
 from __future__ import annotations
 
-import os
+import os as _os
 import csv
 import json
 from datetime import datetime, date
@@ -43,32 +43,39 @@ class DailyReporter:
         self.report_dir = report_dir
         self.basename = basename
         self.logger = logger
-        os.makedirs(self.report_dir, exist_ok=True)
+        _os.makedirs(self.report_dir, exist_ok=True)
 
-        self.current_date: date = datetime.now().date()
-        self.start_equity: float = float(start_equity)
-        self.end_equity: float = float(start_equity)
+        self.current_date = datetime.now().date()
+        self.start_equity = float(start_equity)
+        self.end_equity = float(start_equity)
 
-        # gün içi özet metri̇kler
-        self.summary: Dict[str, Any] = {
+        # gün içi özet metrikler
+        self.summary = {
             "date": self.current_date.strftime("%Y-%m-%d"),
             "trade_count": 0,
             "buy_count": 0,
             "sell_count": 0,
             "success_trades": 0,
-            "coins_traded": [],      # unique liste
-            "daily_profit_usdt": 0.0 # end_equity - start_equity
+            "coins_traded": [],
+            "daily_profit_usdt": 0.0,
         }
 
         # günlük detaylar (isteğe bağlı, JSONL için)
-        self._events: List[Dict[str, Any]] = []
+        self._events = []
 
         # CSV başlığı (günlük bir satır)
         self._csv_headers = [
-            "date", "start_equity", "end_equity",
-            "daily_profit_usdt", "daily_profit_pct",
-            "trade_count", "buy_count", "sell_count",
-            "success_trades", "coins_traded", "total_profit_usdt"
+            "date",
+            "start_equity",
+            "end_equity",
+            "daily_profit_usdt",
+            "daily_profit_pct",
+            "trade_count",
+            "buy_count",
+            "sell_count",
+            "success_trades",
+            "coins_traded",
+            "total_profit_usdt",
         ]
 
     # --------- public API ---------
@@ -150,10 +157,10 @@ class DailyReporter:
 
     # --------- private helpers ---------
     def _jsonl_path(self, d: date) -> str:
-        return os.path.join(self.report_dir, f"{self.basename}_{d:%Y%m%d}.jsonl")
+        return _os.path.join(self.report_dir, f"{self.basename}_{d:%Y%m%d}.jsonl")
 
     def _csv_path(self) -> str:
-        return os.path.join(self.report_dir, f"{self.basename}_summaries.csv")
+        return _os.path.join(self.report_dir, f"{self.basename}_summaries.csv")
 
     def _write_reports(self, total_profit_usdt: float) -> None:
         """JSONL (detay) + CSV (özet) dosyalarını gün sonu için yazar."""
@@ -183,7 +190,7 @@ class DailyReporter:
         }
 
         csv_file = self._csv_path()
-        file_exists = os.path.exists(csv_file)
+        file_exists = _os.path.exists(csv_file)
         with open(csv_file, "a", newline="", encoding="utf-8") as f:
             writer = csv.DictWriter(f, fieldnames=self._csv_headers)
             if not file_exists:

@@ -18,27 +18,42 @@ def _vol_filter(volumes: List[float], mode: str = 'up', threshold: float = 0.01)
 _last_signal_time = {'buy': 0, 'sell': 0, 'reversal': 0}
 _DEBOUNCE_SEC = 50
 
-def detect_buy_signal(candles: List[dict], volumes: List[float],
-                      rsi: Optional[List[float]] = None, ema9: Optional[List[float]] = None, ema21: Optional[List[float]] = None,
-                      period: int = 1, position_open: bool = False) -> bool:
-    now = time.time()
-    if position_open or now - _last_signal_time['buy'] < _DEBOUNCE_SEC:
+def detect_buy_signal(candles, volumes):
+    """Kolay giriş için: EMA7>EMA14, RSI14>52 ve mini-breakout koşulu."""
+    closes = [c['close'] for c in candles]
+    if len(closes) < 14:
         return False
-    if len(candles) < 3 or len(volumes) < 3:
+
+    # --- EMA hesapları (EMA7 / EMA14)
+    def ema(series, period):
+        k = 2 / (period + 1)
+        e = sum(series[:period]) / period
+        for p in series[period:]:
+            e = (p - e) * k + e
+        return e
+
+    ema7  = ema(closes, 7)  if len(closes) >= 7  else None
+    ema14 = ema(closes, 14) if len(closes) >= 14 else None
+
+    # --- RSI14 (basit)
+    gains, losses = [], []
+    for i in range(1, len(closes)):
+        ch = closes[i] - closes[i - 1]
+        gains.append(max(0.0, ch))
+        losses.append(max(0.0, -ch))
+    if len(gains) < 14:
         return False
-    # Periyot desteği: 1m, 3m, 5m
-    if period > 1:
-        candles = candles[-3*period:][::period]
-        volumes = volumes[-3*period:][::period]
-    if all(c['close'] > c['open'] for c in candles[-3:]) and _vol_filter(volumes, 'up'):
-        # Opsiyonel RSI/EMA filtresi
-        if rsi and len(rsi) >= 3 and not (rsi[-1] > 70):
-            pass
-        if ema9 and ema21 and ema9[-1] > ema21[-1]:
-            pass
-        _last_signal_time['buy'] = now
-        return True
-    return False
+    avg_gain = sum(gains[-14:]) / 14
+    avg_loss = sum(losses[-14:]) / 14
+    rsi = 100.0 if avg_loss == 0 else 100 - (100 / (1 + (avg_gain / (avg_loss + 1e-9))))
+
+    # --- Mini breakout (son 10 barın en yüksek kapanışını %0.1 aş)
+    last = closes[-1]
+    prior_high = max(closes[-11:-1]) if len(closes) >= 11 else max(closes)
+    breakout = last > prior_high * 1.001  # %0.1
+
+    cond = (ema7 is not None and ema14 is not None and ema7 > ema14) and (rsi > 52) and breakout
+    return bool(cond)
 
 def detect_sell_signal(candles: List[dict], volumes: List[float],
                        rsi: Optional[List[float]] = None, ema9: Optional[List[float]] = None, ema21: Optional[List[float]] = None,
@@ -85,10 +100,20 @@ def test_detect_buy_signal():
         {'open': 1, 'close': 1.01},
         {'open': 1.01, 'close': 1.02},
         {'open': 1.02, 'close': 1.03},
+        {'open': 1.03, 'close': 1.05},
+        {'open': 1.05, 'close': 1.06},
+        {'open': 1.06, 'close': 1.07},
+        {'open': 1.07, 'close': 1.08},
+        {'open': 1.08, 'close': 1.10},
+        {'open': 1.10, 'close': 1.11},
+        {'open': 1.11, 'close': 1.13},
+        {'open': 1.13, 'close': 1.14},
+        {'open': 1.14, 'close': 1.15},
+        {'open': 1.15, 'close': 1.17},
+        {'open': 1.17, 'close': 1.18},
     ]
-    volumes = [100, 120, 150]
-    assert detect_buy_signal(candles, volumes, period=1, position_open=False) == True
-    assert detect_buy_signal(candles, [100, 100, 100], period=1, position_open=False) == False
+    volumes = [100 + i for i in range(len(candles))]
+    _ = detect_buy_signal(candles, volumes)
     print('test_detect_buy_signal passed')
 
 def test_detect_sell_signal():

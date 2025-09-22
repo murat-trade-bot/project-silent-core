@@ -50,7 +50,7 @@ class BinanceAnalyzer:
         self.symbol = symbol
         self.client = Client(BINANCE_API_KEY, BINANCE_API_SECRET)
         # Testnet modu için URL ayarı
-        if os.getenv("TESTNET_MODE", "False").lower() == "True":
+        if os.getenv("TESTNET_MODE", "False").lower() == "true":
             self.client.API_URL = 'https://testnet.binance.vision/api'
         self.order_book = None
         self.recent_trades = deque(maxlen=500)

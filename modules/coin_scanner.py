@@ -1,8 +1,9 @@
-# coin_scanner.py
+# modules/coin_scanner.py
 """
 Çoklu coin tarama ve en iyi coini otomatik seçen modül
 """
 
+import os as _os
 import json
 import time
 import logging
@@ -10,6 +11,19 @@ from typing import List, Dict, Any, Optional
 from modules.trend_signals import detect_buy_signal, detect_strong_reversal_sell
 
 COIN_LIST_PATH = 'config/coin_list.json'
+
+# --- Volatilite / Hacim eşikleri (.env'den okunur) ---
+# Notlar:
+# - MIN_VOL_1M: 1 dakikalık fiyat volatilitesi için minimum eşik (oran olarak, örn: 0.00005 = %0.005)
+# - MIN_VOL_5M: 5 dakikalık fiyat aralığı (range) için minimum eşik (oran)
+# - MIN_VOL_USDT_5M: Son 5 barın yaklaşık USDT hacmi için minimum eşik (USDT)
+MIN_VOL_1M = float(_os.getenv("MIN_VOL_1M", "0.00005"))
+MIN_VOL_5M = float(_os.getenv("MIN_VOL_5M", "0.0008"))
+MIN_VOL_USDT_5M = float(_os.getenv("MIN_VOL_USDT_5M", "30000"))
+
+# Teşhis: Eşikler gerçekten ne olarak okunuyor?
+print(f"[scanner] thresholds: MIN_VOL_1M={MIN_VOL_1M}, MIN_VOL_5M={MIN_VOL_5M}, MIN_VOL_USDT_5M={MIN_VOL_USDT_5M}")
+
 
 def load_coin_list() -> List[str]:
     with open(COIN_LIST_PATH, 'r') as f:
@@ -24,7 +38,7 @@ def fetch_candles_and_volumes(client, symbol: str, interval: str = '1m', limit: 
         klines = client.get_klines(symbol=symbol, interval=interval, limit=limit)
         closes = [float(k[4]) for k in klines]
         candles = [{'open': float(k[1]), 'close': float(k[4])} for k in klines]
-        volumes = [float(k[5]) for k in klines]
+        volumes = [float(k[5]) for k in klines]  # base volume
         rsi_series = calculate_rsi_series(closes, period=14)
         ema_series = calculate_ema_series(closes, period=14)
         return candles, volumes, closes, rsi_series, ema_series
@@ -66,7 +80,6 @@ def calculate_ema_series(closes: List[float], period: int = 14) -> List[Optional
     return ema_list
 
 
-
 def load_scoring_params(path: str = 'config/coin_scanner_params.json') -> dict:
     try:
         with open(path, 'r') as f:
@@ -87,6 +100,7 @@ def load_scoring_params(path: str = 'config/coin_scanner_params.json') -> dict:
             "ema_below": -1
         }
 
+
 def select_best_coin(client, sleep_time: float = 0.2, verbose: bool = False, scoring_params: dict = None) -> Optional[str]:
     """
     Çoklu coin taraması yapar, gelişmiş skor sistemiyle en iyi coini seçer.
@@ -96,6 +110,7 @@ def select_best_coin(client, sleep_time: float = 0.2, verbose: bool = False, sco
         scoring_params = load_scoring_params()
     best_score = float('-inf')
     best_coin = None
+
     for symbol in coin_list:
         candles, volumes, closes, rsi_series, ema_series = fetch_candles_and_volumes(client, symbol, '1m', 30)
         if candles is None or volumes is None or closes is None:
@@ -103,17 +118,49 @@ def select_best_coin(client, sleep_time: float = 0.2, verbose: bool = False, sco
 
         # Hacim artışı yüzdesi (son 2 bar)
         if len(volumes) >= 4:
-            vol_change = ((volumes[-1] - volumes[-4]) / (volumes[-4] + 1e-8)) * 100
+            vol_change = ((volumes[-1] - volumes[-4]) / (volumes[-4] + 1e-8)) * 100  # %
         else:
-            vol_change = 0
+            vol_change = 0.0
 
         # Volatilite (son 10 barın stdev'i)
         if len(closes) >= 10:
             mean = sum(closes[-10:]) / 10
             variance = sum((x - mean) ** 2 for x in closes[-10:]) / 10
-            volatility = variance ** 0.5
+            volatility = variance ** 0.5  # mutlak fiyat biriminde
         else:
-            volatility = 0
+            volatility = 0.0
+
+        # Volatiliteyi orana çevir (fiyata göre normalize)
+        if closes and closes[-1] > 0:
+            volatility_pct_1m = volatility / closes[-1]  # ~1m volatilite oranı
+        else:
+            volatility_pct_1m = 0.0
+
+        # 5 dakikalık fiyat aralığı (range) oranı
+        if len(closes) >= 5 and closes[-1] > 0:
+            last5 = closes[-5:]
+            range_pct_5m = (max(last5) - min(last5)) / closes[-1]
+        else:
+            range_pct_5m = 0.0
+
+        # 1 dakikalık ve 5 dakikalık yaklaşık USDT hacimleri
+        # (Binance klines'taki k[5] base volume; USDT'ye çevirmek için ~ closes[-1] ile çarpıyoruz)
+        last_price = closes[-1] if closes else 0.0
+        vol_usdt_1m = (volumes[-1] * last_price) if (volumes and last_price) else 0.0
+        vol_usdt_5m = (sum(volumes[-5:]) * last_price) if (len(volumes) >= 5 and last_price) else 0.0
+
+        # --- Filtre: Piyasa sakin/likidite düşükse ele
+        # Daha "gevşek" olsun diye üç şartın da düşük olması halinde eleme yapıyoruz.
+        # Böylece en az bir metrik yeterince iyiyse aday kalır.
+        if (volatility_pct_1m < MIN_VOL_1M) and (range_pct_5m < MIN_VOL_5M) and (vol_usdt_5m < MIN_VOL_USDT_5M):
+            if verbose:
+                print(
+                    f"[scanner] {symbol}: Volatilite/hacim düşük, işlem yok. "
+                    f"(1mV: {volatility_pct_1m:.4f}, 5mV: {range_pct_5m:.4f}, "
+                    f"1mH: {int(vol_usdt_1m)}, 5mH: {int(vol_usdt_5m)})"
+                )
+            time.sleep(sleep_time)
+            continue
 
         # RSI/EMA uyumu (son 3 bar ortalaması)
         rsi_score = 0
@@ -134,8 +181,10 @@ def select_best_coin(client, sleep_time: float = 0.2, verbose: bool = False, sco
         elif ema_val is not None:
             ema_score = scoring_params["ema_below"]
 
-        # Trend sinyalleri (son 3 bar)
-        buy_signal = detect_buy_signal(candles[-5:], volumes[-5:])
+        # Trend sinyalleri (son 5 bar üzerinden)
+        # Agresif BUY sinyali (EMA7>EMA14 + RSI>52 + mini breakout) en az 14 kapanış ister
+        buy_window = 20 if len(candles) >= 20 else len(candles)
+        buy_signal = detect_buy_signal(candles[-buy_window:], volumes[-buy_window:])
         reversal_signal = detect_strong_reversal_sell(
             candles[-5:],
             closes[-5:],
@@ -145,11 +194,11 @@ def select_best_coin(client, sleep_time: float = 0.2, verbose: bool = False, sco
         )
 
         # Skor hesaplama
-        score = 0
-        score += scoring_params["buy_signal_weight"] if buy_signal else 0
+        score = 0.0
+        score += scoring_params["buy_signal_weight"] if buy_signal else 0.0
         score += scoring_params["no_reversal_bonus"] if not reversal_signal else scoring_params["reversal_penalty"]
         score += min(max(vol_change / scoring_params["vol_change_scale"], -scoring_params["vol_change_clip"]), scoring_params["vol_change_clip"])
-        score += min(max(volatility, 0), scoring_params["volatility_clip"])
+        score += min(max(volatility, 0.0), scoring_params["volatility_clip"])
         score += rsi_score
         score += ema_score
 
@@ -159,15 +208,19 @@ def select_best_coin(client, sleep_time: float = 0.2, verbose: bool = False, sco
             score += min(max(momentum, -2), 2)
 
         if verbose:
-            print(f"{symbol}: score={score:.2f} vol%={vol_change:.1f} volat={volatility:.4f} rsi={rsi_val} ema={ema_val} buy={buy_signal} rev={reversal_signal}")
+            print(
+                f"[scanner] {symbol}: score={score:.2f} vol%={vol_change:.1f} "
+                f"volat={volatility:.4f} rsi={rsi_val} ema={ema_val} "
+                f"buy={buy_signal} rev={reversal_signal}"
+            )
 
         if score > best_score:
             best_score = score
             best_coin = symbol
 
         time.sleep(sleep_time)  # API rate limit koruması
-    return best_coin
 
+    return best_coin
 
 
 def test_select_best_coin():
@@ -186,10 +239,8 @@ def test_select_best_coin():
                 [0, closes[i], 0, 0, closes[i], volumes[i], 0, 0, 0, 0, 0, 0]
                 for i in range(limit)
             ]
-
-    import os
     test_coins = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "FAILCOIN"]
-    os.makedirs("config", exist_ok=True)
+    _os.makedirs("config", exist_ok=True)
     with open(COIN_LIST_PATH, 'w') as f:
         json.dump(test_coins, f)
 
@@ -220,6 +271,7 @@ def test_select_best_coin():
             raise Exception("API Fail")
     result2 = select_best_coin(AllFailClient(), sleep_time=0, verbose=True)
     print(f"Test sonucu (tümü fail): {result2}")
+
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)

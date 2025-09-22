@@ -3,7 +3,7 @@
 Gelişmiş Otomatik Parametre Optimizasyonu Modülü
 """
 import json
-import os
+import os as _os
 import datetime
 from typing import Dict, Any, List, Optional
 from statistics import mean, pstdev
@@ -26,7 +26,7 @@ class Optimizer:
     def _safe_load_json(self, file_path: str, default):
         """Dosya okunamazsa varsayılan değeri döndür."""
         try:
-            if os.path.exists(file_path):
+            if _os.path.exists(file_path):
                 with open(file_path, 'r') as f:
                     return json.load(f)
         except Exception:
@@ -43,7 +43,9 @@ class Optimizer:
         })
 
     def _save_params(self):
-        os.makedirs(os.path.dirname(self.param_file), exist_ok=True)
+        dirpath = _os.path.dirname(self.param_file)
+        if dirpath:
+            _os.makedirs(dirpath, exist_ok=True)
         with open(self.param_file, 'w') as f:
             json.dump(self.params, f, indent=2)
 
@@ -51,7 +53,9 @@ class Optimizer:
         return self._safe_load_json(self.perf_log_file, [])
 
     def _save_performance(self):
-        os.makedirs(os.path.dirname(self.perf_log_file), exist_ok=True)
+        dirpath = _os.path.dirname(self.perf_log_file)
+        if dirpath:
+            _os.makedirs(dirpath, exist_ok=True)
         with open(self.perf_log_file, 'w') as f:
             json.dump(self.performance, f, indent=2)
 
@@ -64,7 +68,9 @@ class Optimizer:
             'old_params': old_params,
             'new_params': new_params
         })
-        os.makedirs(os.path.dirname(self.change_log_file), exist_ok=True)
+        dirpath = _os.path.dirname(self.change_log_file)
+        if dirpath:
+            _os.makedirs(dirpath, exist_ok=True)
         with open(self.change_log_file, 'w') as f:
             json.dump(changes, f, indent=2)
 
