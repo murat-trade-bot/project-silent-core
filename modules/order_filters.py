@@ -19,6 +19,19 @@ from __future__ import annotations
 from typing import Dict, List, Tuple, Optional, Any
 import math
 import os
+ 
+# Basit bool env okuyucu (autoscale vb. için)
+def _bool_env(name: str, default: bool) -> bool:
+    v = os.getenv(name)
+    if v is None:
+        return default
+    return str(v).strip().lower() in ("1", "true", "yes", "on")
+
+def _float_env(name: str, default: float) -> float:
+    try:
+        return float(os.getenv(name, default))
+    except Exception:
+        return default
 
 try:
     # Opsiyonel: ayarlardan eşik/varsayılanları al
@@ -340,3 +353,156 @@ def adjust_qty_for_filters(symbol: str, qty: float) -> float:
         return q
     except Exception:
         return 0.0
+
+
+# ==========================
+# Tek doğrulama noktası (tick/step/minNotional + cooldown)
+# ==========================
+from core.types import OrderPlan, RiskCheckResult
+from core.exchange_rules import load_rules_for_symbol
+from core.num import quantize_to_step, round_to_tick, safe_mul, ceil_to_step
+from core.cooldown import REGISTRY
+from core.logger import logger
+
+
+def _ensure_entry_price(plan: OrderPlan, market_state: Optional[Dict[str, Any]]) -> Optional[float]:
+    if plan.entry_price is not None:
+        return plan.entry_price
+    if market_state and "last_price" in market_state:
+        try:
+            return float(market_state["last_price"])  
+        except Exception:
+            return None
+    return None
+
+
+def _ensure_qty_base(plan: OrderPlan, entry_price: Optional[float]) -> Optional[float]:
+    if plan.qty_base is not None:
+        return plan.qty_base
+    if plan.qty_quote is not None and entry_price:
+        try:
+            return float(plan.qty_quote) / float(entry_price)
+        except Exception:
+            return None
+    return None
+
+
+def validate_order_plan(plan: OrderPlan,
+                        market_state: Optional[Dict[str, Any]] = None,
+                        account_state: Optional[Dict[str, Any]] = None) -> RiskCheckResult:
+    """
+    Tek doğrulama noktası:
+    - entry_price yoksa market_state.last_price ile doldur
+    - qty_base yoksa qty_quote/price ile hesapla
+    - tickSize/stepSize uyumu
+    - minNotional
+    - cooldown & overtrade guard
+    """
+    reasons: List[str] = []
+    symbol = plan.symbol
+    rules = load_rules_for_symbol(symbol)
+
+    # 1) Fiyatı kesinleştir
+    entry = _ensure_entry_price(plan, market_state)
+    if entry is None:
+        reasons.append("entry_price_missing")
+        return RiskCheckResult(ok=False, reasons=reasons)
+
+    # 2) Miktarı kesinleştir
+    qty = _ensure_qty_base(plan, entry)
+    if qty is None or qty <= 0:
+        reasons.append("qty_missing_or_invalid")
+        return RiskCheckResult(ok=False, reasons=reasons)
+
+    # 3) Tick/step yuvarlamaları
+    adj_entry = round_to_tick(entry, rules.tick_size)
+    adj_qty = quantize_to_step(qty, rules.step_size)
+    if adj_qty <= 0:
+        reasons.append("qty_after_step_zero")
+        return RiskCheckResult(ok=False, reasons=reasons)
+
+    # 4-) Slippage guard (opsiyonel): market_state.last_price varsa kullan
+    MAX_SLIPPAGE_PCT = _float_env("MAX_SLIPPAGE_PCT", 0.0)
+    if MAX_SLIPPAGE_PCT > 0 and market_state and "last_price" in (market_state or {}):
+        try:
+            mkt = float(market_state["last_price"])
+            if mkt > 0:
+                slip = abs(adj_entry - mkt) / mkt
+                if slip > MAX_SLIPPAGE_PCT:
+                    reasons.append(f"slippage_exceeds_limit({slip:.6f}>{MAX_SLIPPAGE_PCT:.6f})")
+                    return RiskCheckResult(ok=False, reasons=reasons, adjusted_qty=adj_qty, adjusted_entry=adj_entry)
+        except Exception:
+            # market_state bozuksa slippage guard atlanır
+            pass
+
+    # 5) Min notional
+    notional = safe_mul(adj_qty, adj_entry)
+    if notional is None or notional + 1e-9 < rules.min_notional_usdt:
+        # Opsiyonel autoscale (sadece BUY ve yeterli quote varsa)
+        allow_auto = _bool_env("ALLOW_MIN_NOTIONAL_AUTOSCALE", False)
+        if allow_auto and plan.side.upper() == "BUY" and account_state is not None:
+            try:
+                quote_free = float(account_state.get("quote_free", 0.0))
+            except Exception:
+                quote_free = 0.0
+            # Min notional için gerekli miktar
+            if adj_entry and adj_entry > 0.0:
+                needed_qty = float(rules.min_notional_usdt) / float(adj_entry)
+                auto_qty = ceil_to_step(needed_qty, rules.step_size)
+                # Yeterli bakiye var mı?
+                needed_quote = auto_qty * float(adj_entry)
+                if quote_free + 1e-9 >= needed_quote:
+                    adj_qty = quantize_to_step(auto_qty, rules.step_size)
+                    notional2 = safe_mul(adj_qty, adj_entry) or 0.0
+                    if notional2 + 1e-9 < rules.min_notional_usdt:
+                        # bir adım daha artırmayı dene
+                        adj_qty = quantize_to_step(auto_qty + rules.step_size, rules.step_size)
+                        notional2 = safe_mul(adj_qty, adj_entry) or 0.0
+                    if notional2 + 1e-9 >= rules.min_notional_usdt:
+                        pass  # autoscale başarılı, devam et
+                    else:
+                        reasons.append("autoscale_failed_min_notional")
+                        return RiskCheckResult(ok=False, reasons=reasons, adjusted_qty=adj_qty, adjusted_entry=adj_entry)
+                else:
+                    reasons.append("insufficient_quote_for_autoscale")
+                    return RiskCheckResult(ok=False, reasons=reasons, adjusted_qty=adj_qty, adjusted_entry=adj_entry)
+            else:
+                reasons.append("invalid_entry_for_autoscale")
+                return RiskCheckResult(ok=False, reasons=reasons, adjusted_qty=adj_qty, adjusted_entry=adj_entry)
+        else:
+            reasons.append(f"min_notional<{rules.min_notional_usdt}")
+            return RiskCheckResult(ok=False, reasons=reasons, adjusted_qty=adj_qty, adjusted_entry=adj_entry)
+
+    # 6) Cooldown / overtrade guard (TEST_SKIP_COOLDOWN=true ise atla)
+    if not _bool_env("TEST_SKIP_COOLDOWN", False):
+        import time
+        now = time.time()
+        allowed, why = REGISTRY.can_trade(symbol, now)
+        if not allowed:
+            reasons.append(why)
+            return RiskCheckResult(ok=False, reasons=reasons, adjusted_qty=adj_qty, adjusted_entry=adj_entry)
+
+    # 7) SL/TP basit tutarlılık
+    if plan.side == "BUY" and plan.sl_price is not None and plan.sl_price >= adj_entry:
+        reasons.append("sl>=entry_on_buy")
+    if plan.side == "SELL" and plan.sl_price is not None and plan.sl_price <= adj_entry:
+        reasons.append("sl<=entry_on_sell")
+    if reasons:
+        return RiskCheckResult(ok=False, reasons=reasons, adjusted_qty=adj_qty, adjusted_entry=adj_entry)
+
+    return RiskCheckResult(
+        ok=True,
+        reasons=[],
+        adjusted_qty=adj_qty,
+        adjusted_entry=adj_entry,
+        adjusted_sl=plan.sl_price,
+        adjusted_tp=plan.tp_price,
+        risk_score=0.0,
+        cooldown_seconds=0,
+    )
+
+
+def mark_executed(symbol: str) -> None:
+    """Emir başarılı olduğunda cooldown sayaçlarını güncelle."""
+    import time
+    REGISTRY.mark_trade(symbol, time.time())

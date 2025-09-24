@@ -41,7 +41,45 @@ from notifier import send_notification
 from config import settings
 from config import BAŞLANGIÇ_SERMEYESİ, IŞLEM_MIKTARI, TRADE_INTERVAL, MIN_BAKIYE, STOP_LOSS_RATIO, TAKE_PROFIT_RATIO
 from core.logger import BotLogger
-from core.logger import log_event
+from core.logger import log_exceptions, logger
+from core.pipeline import PIPELINE_ENABLED, build_order_plan_from_signals, validate_order_plan, execute_order_plan, execute_with_filters
+from core.envcheck import load_runtime_config, assert_live_prereqs
+from core.metrics import start_metrics_server_if_enabled
+from core.types import SignalBundle
+import os as _pipeline_os
+
+PIPELINE_LOG_ON = _pipeline_os.getenv("ORDER_PIPELINE_LOG", "1") in ("1", "true", "yes", "on")
+
+# --- Runtime bootstrap ---
+cfg = load_runtime_config()
+if cfg.mode.name == "LIVE":
+	assert_live_prereqs()
+start_metrics_server_if_enabled()
+
+@log_exceptions("main-loop")
+def maybe_pipeline_entry(signal_data: dict):
+	if not PIPELINE_ENABLED:
+		return
+	sb = SignalBundle(
+		symbol=signal_data.get("symbol", "BTCUSDT"),
+		buy_score=float(signal_data.get("buy_score", 0.0)),
+		sell_score=float(signal_data.get("sell_score", 0.0)),
+		regime_on=bool(signal_data.get("regime_on", True)),
+		volatility=float(signal_data.get("volatility", 0.0)),
+		extras=signal_data
+	)
+	plan = build_order_plan_from_signals(sb)
+	if plan is None:
+		if PIPELINE_LOG_ON:
+			logger.info("PIPELINE: WAIT (no plan)")
+		return
+	r = validate_order_plan(plan, market_state=None, account_state=None)
+	if not r.ok:
+		logger.info(f"PIPELINE: REJECTED -> {r.reasons}")
+		return
+	res = execute_with_filters(plan, market_state=None, account_state=None)
+	if PIPELINE_LOG_ON:
+		logger.info(f"PIPELINE: EXEC status={res.status} success={res.success}")
 from modules.strategy_optimizer import optimize_strategy_parameters
 from onchain_alternative import get_trade_signal
 from modules.order_executor import OrderExecutor
@@ -386,19 +424,19 @@ def main() -> None:
 			else:
 				daily_pnl_pct = 0.0
 			if daily_pnl_pct >= float(_os.getenv("DAILY_TARGET_PCT", 3.13)):
-				log_event("DAILY TARGET REACHED", pct=f"{daily_pnl_pct:.2f}%", detail="Gün kilitlendi")
+				logger.info("DAILY TARGET REACHED | pct=%s | detail=%s", f"{daily_pnl_pct:.2f}%", "Gün kilitlendi")
 				trading_enabled = False
 				time.sleep(5)
 				continue
 			if daily_pnl_pct <= -float(_os.getenv("DAILY_MAX_LOSS_PCT", 1.0)):
-				log_event("DAILY LOSS LIMIT HIT", pct=f"{daily_pnl_pct:.2f}%", detail="Gün kapatıldı")
+				logger.info("DAILY LOSS LIMIT HIT | pct=%s | detail=%s", f"{daily_pnl_pct:.2f}%", "Gün kapatıldı")
 				trading_enabled = False
 				time.sleep(5)
 				continue
 
 			# === Günlük işlem sayısı sınırı ===
 			if reporter.summary.get("trade_count", 0) >= int(_os.getenv("DAILY_MAX_TRADES", 12)):
-				log_event("TRADE LIMIT", reason="Maksimum işlem sayısına ulaşıldı")
+				logger.info("TRADE LIMIT | reason=%s", "Maksimum işlem sayısına ulaşıldı")
 				time.sleep(5)
 				continue
 
@@ -528,7 +566,7 @@ def main() -> None:
 				ohlcv_15m = []
 			trend_on = playbook.regime_on(ohlcv_15m) if ohlcv_15m else False
 			if not trend_on:
-				log_event("REGIME OFF", symbol=best_coin, msg="Trend kapalı, scalp mod")
+				logger.info("REGIME OFF | symbol=%s | msg=%s", best_coin, "Trend kapalı, scalp mod")
 
 			# === Giriş sinyalleri (1m) ===
 			try:
@@ -602,8 +640,8 @@ def main() -> None:
 							pos.entry_ts = time.time()
 							pos.last_action_ts = time.time()
 
-							log_event(
-								"ENTRY",
+							logger.info(
+								"ENTRY | %s",
 								f"BUY {best_coin} qty={qty_base} @ {current_price:.6f} stop={pos.stop_price} | setup={'LONG' if long_setup else 'SCALP'}"
 							)
 
@@ -613,8 +651,8 @@ def main() -> None:
 						# ENTRY bloğunun sonunda daima döngü turunu kapat
 						continue
 					else:
-						log_event(
-							"SIZE-FAIL",
+						logger.info(
+							"SIZE-FAIL | %s",
 							f"{best_coin} qty=0 | price={current_price} min_notional={MIN_NOTIONAL_USDT} risk_pct={RISK_PCT}"
 						)
 
@@ -631,7 +669,7 @@ def main() -> None:
 				except Exception:
 					pass
 				if pos.in_pos: reasons.append("in_pos")
-				log_event("WAIT-REASON", symbol=best_coin, msg=",".join(reasons) or "none")
+				logger.info("WAIT-REASON | symbol=%s | msg=%s", best_coin, ",".join(reasons) or "none")
 
 			# === EXIT (SATIŞ) KARARI — İLK KÂR FIRSATINDA ÇIKIŞ ===
 			if pos.in_pos and pos.symbol == best_coin and current_price:
@@ -647,7 +685,7 @@ def main() -> None:
 					humanizer.humanized_order_wrapper(
 						order_executor.execute_order, symbol=best_coin, side="SELL", qty=pos.qty, price=None
 					)
-					log_event("EXIT", f"HARD STOP SELL {best_coin} upnl={upnl_pct*100:.2f}% @ {mark:.6f}")
+					logger.info("EXIT | %s", f"HARD STOP SELL {best_coin} upnl={upnl_pct*100:.2f}% @ {mark:.6f}")
 					reset_pos(); continue
 
 				exit_sig = safe_exit_signal(candles_1m=ohlcv_1m, rsi_values=rsi_values, ema_9=ema_9, ema_21=ema_21)
@@ -830,7 +868,7 @@ def main() -> None:
 					me = micro_entry_signal(ohlcv_1m=ohlcv_1m, vwap=vwap_values if 'vwap_values' in locals() else [], volatility=volatility_1m if 'volatility_1m' in locals() else 0.0)
 					if not me: reason.append("no_micro")
 				reason_str = ",".join(reason) or "unknown"
-				log_event("WAIT-REASON", f"{best_coin} → {reason_str}")
+				logger.info("WAIT-REASON | %s", f"{best_coin} → {reason_str}")
 			except Exception:
 				pass
 

@@ -1,3 +1,98 @@
+from __future__ import annotations
+import os
+import time
+from typing import Optional, Dict
+from prometheus_client import CollectorRegistry, Counter, Histogram, generate_latest, start_http_server
+
+
+def _bool_env(name: str, default: bool) -> bool:
+    v = os.getenv(name)
+    if v is None:
+        return default
+    return str(v).strip().lower() in ("1", "true", "yes", "on")
+
+
+def _int_env(name: str, default: int) -> int:
+    try:
+        return int(os.getenv(name, default))
+    except Exception:
+        return default
+
+
+# Modül içi kayıt
+_REG = CollectorRegistry()
+STARTED = False
+
+# Metrikler
+ORDERS_TOTAL = Counter(
+    "orders_total", "Orders by symbol/side/status",
+    labelnames=("symbol", "side", "status"), registry=_REG
+)
+REJECTIONS_TOTAL = Counter(
+    "order_rejections_total", "Rejections by reason",
+    labelnames=("reason",), registry=_REG
+)
+EXCEPTIONS_TOTAL = Counter(
+    "exceptions_total", "Unhandled exceptions by type",
+    labelnames=("type",), registry=_REG
+)
+EXEC_LATENCY = Histogram(
+    "order_execution_seconds", "Execution latency (seconds)",
+    buckets=(0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10), registry=_REG
+)
+
+
+def start_metrics_server_if_enabled() -> None:
+    global STARTED
+    if STARTED:
+        return
+    if _bool_env("METRICS_ENABLED", False):
+        port = _int_env("METRICS_PORT", 9108)
+        start_http_server(port, registry=_REG)
+    STARTED = True
+
+
+def inc_order(symbol: str, side: str, status: str) -> None:
+    try:
+        ORDERS_TOTAL.labels(symbol=symbol, side=side, status=status).inc()
+    except Exception:
+        pass
+
+
+def inc_reject(reason: str) -> None:
+    try:
+        REJECTIONS_TOTAL.labels(reason=reason).inc()
+    except Exception:
+        pass
+
+
+def inc_exc(cls_name: str) -> None:
+    try:
+        EXCEPTIONS_TOTAL.labels(type=cls_name).inc()
+    except Exception:
+        pass
+
+
+def observe_exec(seconds: float) -> None:
+    try:
+        EXEC_LATENCY.observe(seconds)
+    except Exception:
+        pass
+
+
+# Test yardımcıları
+def _generate_latest_text() -> str:
+    return generate_latest(_REG).decode("utf-8")
+
+
+def _reset_for_tests() -> None:
+    global _REG, STARTED, ORDERS_TOTAL, REJECTIONS_TOTAL, EXCEPTIONS_TOTAL, EXEC_LATENCY
+    _REG = CollectorRegistry()
+    STARTED = False
+    ORDERS_TOTAL = Counter("orders_total", "", ("symbol", "side", "status"), registry=_REG)
+    REJECTIONS_TOTAL = Counter("order_rejections_total", "", ("reason",), registry=_REG)
+    EXCEPTIONS_TOTAL = Counter("exceptions_total", "", ("type",), registry=_REG)
+    EXEC_LATENCY = Histogram("order_execution_seconds", "", registry=_REG)
 # core/metrics.py
 
 import time

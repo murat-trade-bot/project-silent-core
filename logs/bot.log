@@ -4943,3 +4943,421 @@ AttributeError: 'RiskManager' object has no attribute 'can_open'
 2025-09-22 17:03:34,287 WARNING strategy_optimizer optimize_strategy_parameters optimize_strategy_parameters: backtest_func belirtilmedi, gerçek optimizasyon yapılmayacak!
 2025-09-22 17:03:44,161 INFO logger log_event REGIME OFF | symbol=SOLUSDT, msg=Trend kapalı, scalp mod
 2025-09-22 17:03:45,627 ERROR main main Emir gönderilemedi (BUY SOLUSDT): OrderExecutor.execute_order() got an unexpected keyword argument 'qty'
+2025-09-22 18:05:37,432 ERROR performance_optimization grid_search GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:05:37,919 ERROR performance_optimization grid_search GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:05:38,238 ERROR performance_optimization grid_search GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:05:38,625 ERROR performance_optimization grid_search GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:05:38,872 ERROR performance_optimization grid_search GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:05:39,219 ERROR performance_optimization grid_search GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:05:39,717 ERROR performance_optimization grid_search GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:05:39,934 ERROR performance_optimization grid_search GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:05:40,193 ERROR performance_optimization grid_search GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:05:40,343 ERROR performance_optimization grid_search GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:05:40,720 ERROR performance_optimization grid_search GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:05:41,157 ERROR performance_optimization grid_search GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:05:41,497 ERROR performance_optimization grid_search GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:05:41,693 ERROR performance_optimization grid_search GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:05:42,151 ERROR performance_optimization grid_search GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:05:42,313 ERROR performance_optimization grid_search GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:05:42,427 ERROR performance_optimization grid_search GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:05:42,893 ERROR performance_optimization grid_search GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:05:43,081 ERROR performance_optimization grid_search GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:05:43,395 ERROR performance_optimization grid_search GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:05:43,533 ERROR performance_optimization grid_search GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:05:43,765 ERROR performance_optimization grid_search GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:05:44,225 ERROR performance_optimization grid_search GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:05:44,573 ERROR performance_optimization grid_search GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:05:44,957 ERROR performance_optimization grid_search GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:05:45,235 ERROR performance_optimization grid_search GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:05:45,575 ERROR performance_optimization grid_search GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:05:46,008 ERROR performance_optimization grid_search GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:05:46,450 ERROR performance_optimization grid_search GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:05:46,592 ERROR performance_optimization grid_search GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:05:47,069 ERROR performance_optimization grid_search GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:05:47,461 ERROR performance_optimization grid_search GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:05:47,787 ERROR performance_optimization grid_search GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:05:48,160 ERROR performance_optimization grid_search GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:05:48,417 ERROR performance_optimization grid_search GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:05:48,640 ERROR performance_optimization grid_search GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:05:49,113 ERROR performance_optimization grid_search GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:05:49,517 ERROR performance_optimization grid_search GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:05:49,825 ERROR performance_optimization grid_search GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:05:50,131 ERROR performance_optimization grid_search GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:05:50,336 ERROR performance_optimization grid_search GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:05:50,570 ERROR performance_optimization grid_search GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:05:50,895 ERROR performance_optimization grid_search GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:05:51,140 ERROR performance_optimization grid_search GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:05:51,458 ERROR performance_optimization grid_search GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:05:51,625 ERROR performance_optimization grid_search GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:05:51,796 ERROR performance_optimization grid_search GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:05:52,041 ERROR performance_optimization grid_search GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:05:52,426 ERROR performance_optimization grid_search GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:05:52,545 ERROR performance_optimization grid_search GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:15:27 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:15:27 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:15:28 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:15:28 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:15:28 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:15:28 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:15:28 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:15:29 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:15:29 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:15:29 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:15:29 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:15:30 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:15:30 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:15:30 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:15:31 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:15:31 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:15:32 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:15:32 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:15:32 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:15:33 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:15:33 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:15:33 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:15:33 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:15:34 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:15:34 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:15:35 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:15:36 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:15:36 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:15:37 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:15:37 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:15:37 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:15:37 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:15:38 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:15:38 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:15:38 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:15:38 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:15:39 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:15:39 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:15:39 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:15:39 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:15:40 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:15:40 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:15:40 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:15:41 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:15:41 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:15:41 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:15:42 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:15:42 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:15:42 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:15:43 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:15:43 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:15:43 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:15:44 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:15:44 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:15:44 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:15:45 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:15:45 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:15:45 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:15:45 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:15:46 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:15:46 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:15:46 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:16:20 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:16:21 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:16:21 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:16:21 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:16:21 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:16:22 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:16:22 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:16:22 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:16:22 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:16:23 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:16:23 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:16:23 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:16:23 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:16:24 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:16:24 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:16:24 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:16:24 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:16:25 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:16:25 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:16:25 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:16:26 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:16:26 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:16:27 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:16:27 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:16:27 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:16:27 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:16:28 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:16:28 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:16:28 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:16:29 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:16:29 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:16:30 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:16:30 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:16:30 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:16:31 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:16:31 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:16:31 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:16:32 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:16:32 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:16:32 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:16:33 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:16:33 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:16:33 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:16:34 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:16:34 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:16:34 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:16:35 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:16:35 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:16:35 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-22 18:16:35 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:22:26 | INFO | silent_core | [MOCK] Executing BUY BTCUSDT | qty_base=0.2 qty_quote=None
+2025-09-24 17:36:43 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:36:43 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:36:44 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:36:44 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:36:44 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:36:45 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:36:45 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:36:45 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:36:46 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:36:46 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:36:46 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:36:46 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:36:47 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:36:47 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:36:47 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:36:48 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:36:48 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:36:48 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:36:49 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:36:49 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:36:49 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:36:49 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:36:49 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:36:50 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:36:50 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:36:50 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:36:51 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:36:51 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:36:51 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:36:51 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:36:51 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:36:51 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:36:52 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:36:52 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:36:52 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:36:53 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:36:53 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:36:53 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:36:53 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:36:54 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:36:54 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:36:54 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:36:55 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:36:55 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:36:55 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:36:56 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:36:56 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:36:56 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:36:56 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:36:57 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:36:57 | INFO | silent_core | [MOCK] Executing BUY BTCUSDT | qty_base=0.2 qty_quote=None
+2025-09-24 17:38:18 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:38:18 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:38:19 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:38:19 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:38:19 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:38:19 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:38:20 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:38:20 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:38:20 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:38:21 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:38:21 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:38:21 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:38:22 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:38:22 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:38:23 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:38:23 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:38:24 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:38:24 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:38:24 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:38:24 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:38:25 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:38:25 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:38:25 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:38:25 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:38:26 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:38:26 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:38:27 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:38:27 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:38:27 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:38:28 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:38:28 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:38:28 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:38:29 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:38:29 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:38:29 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:38:30 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:38:30 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:38:30 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:38:30 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:38:31 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:38:31 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:38:31 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:38:32 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:38:32 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:38:32 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:38:33 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:38:33 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:38:33 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:38:34 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:38:34 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 17:38:34 | INFO | silent_core | [MOCK] Executing BUY TSTUSDT | qty_base=0.2 qty_quote=None
+2025-09-24 18:02:19 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:02:19 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:02:20 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:02:20 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:02:20 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:02:21 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:02:21 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:02:21 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:02:21 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:02:22 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:02:22 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:02:22 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:02:23 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:02:23 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:02:23 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:02:24 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:02:24 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:02:24 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:02:25 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:02:25 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:02:25 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:02:26 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:02:26 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:02:26 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:02:27 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:02:27 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:02:27 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:02:27 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:02:28 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:02:28 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:02:29 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:02:29 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:02:29 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:02:30 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:02:30 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:02:30 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:02:30 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:02:31 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:02:31 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:02:31 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:02:31 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:02:32 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:02:32 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:02:32 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:02:33 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:02:33 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:02:33 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:02:34 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:02:34 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:02:34 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:02:34 | INFO | silent_core | [MOCK] Executing BUY TSTUSDT | qty_base=0.2 qty_quote=None
+2025-09-24 18:03:10 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:03:10 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:03:10 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:03:11 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:03:11 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:03:11 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:03:12 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:03:12 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:03:12 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:03:12 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:03:13 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:03:13 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:03:13 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:03:14 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:03:14 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:03:14 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:03:15 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:03:15 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:03:15 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:03:16 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:03:16 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:03:16 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:03:16 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:03:17 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:03:17 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:03:17 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:03:18 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:03:18 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:03:18 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:03:19 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:03:19 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:03:20 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:03:20 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:03:20 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:03:21 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:03:21 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:03:22 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:03:22 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:03:22 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:03:22 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:03:23 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:03:23 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:03:23 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:03:23 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:03:24 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:03:24 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:03:24 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:03:25 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:03:25 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:03:25 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:03:25 | INFO | silent_core | [MOCK] Executing BUY TSTUSDT | qty_base=0.2 qty_quote=None
+2025-09-24 18:04:21 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:04:22 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:04:22 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:04:22 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:04:22 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:04:22 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:04:23 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:04:23 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:04:23 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:04:23 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:04:24 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:04:24 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:04:25 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:04:25 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:04:26 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:04:26 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:04:26 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:04:26 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:04:26 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:04:27 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:04:27 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:04:28 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:04:28 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:04:28 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:04:28 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:04:29 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:04:29 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:04:29 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:04:30 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:04:30 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:04:30 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:04:31 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:04:31 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:04:32 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:04:32 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:04:32 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:04:32 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:04:33 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:04:33 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:04:34 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:04:34 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:04:34 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:04:35 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:04:35 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:04:35 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:04:35 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:04:36 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:04:36 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:04:36 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:04:37 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-24 18:04:37 | INFO | silent_core | [MOCK] Executing BUY TSTUSDT | qty_base=0.2 qty_quote=None

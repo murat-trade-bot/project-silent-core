@@ -1,61 +1,128 @@
-"""
-Core logging adapter to provide a unified BotLogger() across the codebase.
-Compatible with existing imports: `from core.logger import BotLogger` then `logger = BotLogger()`.
+from __future__ import annotations
+"""Unified logging module providing a singleton logger across the codebase.
+
+Features:
+ - Singleton logger (console + rotating file handler)
+ - Backward compatible BotLogger() factory
+ - Dynamic level change via set_level()
+ - Exception logging decorator (log_exceptions)
+ - Environment driven config (LOG_LEVEL, LOG_DIR)
 """
 import logging
 import os
+import threading
 from logging.handlers import RotatingFileHandler
+from typing import Optional, Callable, Any, TypeVar, cast
 
-_LOGGER_NAME = "silent_core_bot"
-_LOG_DIR = os.path.join(os.getcwd(), "logs")
-_LOG_FILE = os.path.join(_LOG_DIR, "bot.log")
-_SETUP_DONE = False
+_DEFAULT_LOGGER_NAME = "silent_core"
+_LOG_DIR_ENV = "LOG_DIR"
+_LOG_FILE_NAME = "bot.log"
+_DEFAULT_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
+_LOG_DIR = os.getenv(_LOG_DIR_ENV, "logs")
 
-
-def _setup_logger(level=logging.INFO):
-    global _SETUP_DONE
-    if _SETUP_DONE:
-        return logging.getLogger(_LOGGER_NAME)
-
-    os.makedirs(_LOG_DIR, exist_ok=True)
-    logger = logging.getLogger(_LOGGER_NAME)
-    logger.setLevel(level)
-    logger.propagate = False
-
-    # Console handler
-    ch = logging.StreamHandler()
-    ch.setLevel(level)
-    ch.setFormatter(logging.Formatter('%(asctime)s %(levelname)s %(message)s'))
-
-    # Rotating file handler
-    fh = RotatingFileHandler(_LOG_FILE, maxBytes=2 * 1024 * 1024, backupCount=5)
-    fh.setLevel(level)
-    fh.setFormatter(logging.Formatter('%(asctime)s %(levelname)s %(module)s %(funcName)s %(message)s'))
-
-    # Avoid duplicate handlers
-    logger.handlers.clear()
-    logger.addHandler(ch)
-    logger.addHandler(fh)
-
-    _SETUP_DONE = True
-    return logger
+__logger_lock = threading.Lock()
+__logger_singleton: Optional[logging.Logger] = None
 
 
-def BotLogger(level=logging.INFO) -> logging.Logger:
-    """Factory returning the configured logger instance."""
-    return _setup_logger(level)
+def _ensure_logs_dir(path: str) -> None:
+    try:
+        os.makedirs(path, exist_ok=True)
+    except Exception:  # pragma: no cover - defensive
+        pass
 
 
-def log_event(event: str, level: str = 'info', **kwargs):
-    logger = BotLogger()
-    msg = event
-    if kwargs:
-        msg += ' | ' + ', '.join(f'{k}={v}' for k, v in kwargs.items())
-    if level == 'debug':
-        logger.debug(msg)
-    elif level == 'warning':
-        logger.warning(msg)
-    elif level == 'error':
-        logger.error(msg)
-    else:
-        logger.info(msg)
+def _level_from_str(level_name: str) -> int:
+    return getattr(logging, level_name.upper(), logging.INFO)
+
+
+def get_logger(name: str = _DEFAULT_LOGGER_NAME) -> logging.Logger:
+    """Return singleton logger instance."""
+    global __logger_singleton
+    if __logger_singleton:
+        return __logger_singleton
+
+    with __logger_lock:
+        if __logger_singleton:
+            return __logger_singleton
+
+        logger = logging.getLogger(name)
+        logger.setLevel(_level_from_str(_DEFAULT_LEVEL))
+        logger.propagate = False
+
+        if not logger.handlers:
+            # Console handler
+            ch = logging.StreamHandler()
+            ch.setLevel(_level_from_str(_DEFAULT_LEVEL))
+            ch.setFormatter(logging.Formatter(
+                fmt="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
+                datefmt="%Y-%m-%d %H:%M:%S",
+            ))
+            logger.addHandler(ch)
+
+            # File handler
+            try:
+                _ensure_logs_dir(_LOG_DIR)
+                fh = RotatingFileHandler(
+                    filename=os.path.join(_LOG_DIR, _LOG_FILE_NAME),
+                    maxBytes=2 * 1024 * 1024,
+                    backupCount=5,
+                    encoding="utf-8"
+                )
+                fh.setLevel(_level_from_str(_DEFAULT_LEVEL))
+                fh.setFormatter(logging.Formatter(
+                    fmt="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
+                    datefmt="%Y-%m-%d %H:%M:%S",
+                ))
+                logger.addHandler(fh)
+            except Exception:  # pragma: no cover
+                pass
+
+        __logger_singleton = logger
+        return __logger_singleton
+
+
+def set_level(level_name: str) -> None:
+    logger = get_logger()
+    lvl = _level_from_str(level_name)
+    logger.setLevel(lvl)
+    for h in logger.handlers:
+        h.setLevel(lvl)
+
+
+F = TypeVar("F", bound=Callable[..., Any])
+
+
+def log_exceptions(context: str = "") -> Callable[[F], F]:
+    def decorator(func: F) -> F:
+        import functools
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            try:
+                return func(*args, **kwargs)
+            except Exception:
+                get_logger().exception("Unhandled exception%s", f" [{context}]" if context else "")
+                raise
+        return cast(F, wrapper)
+    return decorator
+
+
+class BotLogger:
+    """Backward compatibility facade returning singleton logger."""
+    def __new__(cls, *args, **kwargs):
+        return get_logger()
+
+    @staticmethod
+    def setup(name: str = _DEFAULT_LOGGER_NAME) -> logging.Logger:
+        return get_logger(name)
+
+
+# Public alias
+logger = get_logger()
+
+__all__ = [
+    "logger",
+    "get_logger",
+    "BotLogger",
+    "set_level",
+    "log_exceptions",
+]

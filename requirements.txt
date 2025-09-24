@@ -1,0 +1,9 @@
+python-binance
+python-dotenv
+requests
+pandas
+numpy
+scikit-learn
+textblob
+tweepy
+prometheus-client

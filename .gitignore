@@ -1,5 +1,36 @@
 ﻿.env
+*.env
+
+# Python cache
 __pycache__/
-*.pyc
+*.py[cod]
+
+# Virtual envs
+.venv/
+venv/
+
+# IDE/OS
+.DS_Store
+.idea/
+.vscode/
+
+# Builds / dists
+dist/
+build/
+
+# Logs & artifacts
+*.log
+logs/
 bot_logs.txt
 trades_history.csv
+
+# Runtime state
+state/
+
+# Local reports
+reports/*.csv
+reports/*.json
+
+# Misc
+*.swp
+*.swo

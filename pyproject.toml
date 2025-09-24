@@ -1,0 +1,30 @@
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+skip-string-normalization = true
+
+[tool.isort]
+profile = "black"
+line_length = 100
+combine_as_imports = true
+known_first_party = ["core", "modules"]
+skip = [".venv", "venv", "build", "dist", "logs"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+select = [
+  "E", "F",
+  "I",
+  "B",
+  "UP",
+]
+ignore = [
+  "E501",
+]
+extend-exclude = ["venv", ".venv", "build", "dist", "logs"]
+
+[tool.pytest.ini_options]
+addopts = "-q"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
