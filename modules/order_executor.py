@@ -181,7 +181,8 @@ class OrderExecutor:
         self,
         symbol: str,
         side: str,
-        quantity: float,
+        quantity: float = None,
+        qty: float = None,
         order_type: str = "MARKET",
         price: Optional[float] = None,
         time_in_force: str = "GTC",
@@ -208,6 +209,17 @@ class OrderExecutor:
         """
         side = side.upper()
         order_type = order_type.upper()
+        # Backward compat: bazı çağrılar qty= gönderiyor
+        if quantity is None and qty is not None:
+            quantity = qty
+
+        # Spot-only guard: yanlışlıkla futures/delivery endpoint kullanımı algıla
+        try:
+            base_url = getattr(self.client, "API_URL", "") or ""
+            if any(seg in base_url for seg in ("/fapi", "/dapi")):
+                return {"ok": False, "reason": "spot-only-guard", "info": {"base_url": base_url}}
+        except Exception:
+            pass
 
         # Ön kontrol
         if do_precheck:

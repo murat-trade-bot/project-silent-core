@@ -49,6 +49,7 @@ from core.types import SignalBundle
 import os as _pipeline_os
 
 PIPELINE_LOG_ON = _pipeline_os.getenv("ORDER_PIPELINE_LOG", "1") in ("1", "true", "yes", "on")
+IGNORE_REGIME = _pipeline_os.getenv("ORDER_PIPELINE_IGNORE_REGIME", "0").lower() in ("1", "true", "yes", "on")
 
 # --- Runtime bootstrap ---
 cfg = load_runtime_config()
@@ -68,6 +69,8 @@ def maybe_pipeline_entry(signal_data: dict):
 		volatility=float(signal_data.get("volatility", 0.0)),
 		extras=signal_data
 	)
+	if IGNORE_REGIME:
+		sb.regime_on = True
 	plan = build_order_plan_from_signals(sb)
 	if plan is None:
 		if PIPELINE_LOG_ON:
@@ -543,6 +546,42 @@ def main() -> None:
 					fallback_triggered = True
 					_last_fallback_buy_ts[symbol] = now_ts
 					print(f"[decision] Fallback BUY: log10(score)={norm_score:.2f} (>= {FORCE_SCORE_LOG10}) | cooldown_ok={fallback_cooldown_ok}")
+					# Pipeline bridge (demo/test) - fallback BUY anında pipeline'a sinyal + plan besle
+					if os.getenv("PIPELINE_FALLBACK_DEMO"):
+						try:
+							from core.types import SignalBundle, OrderPlan
+							from core.pipeline import execute_with_filters
+							current_price = last_price  # mevcut son fiyat değişkeni
+							vol = 0.0
+							if 'volatility' in locals():
+								vol = float(volatility or 0.0)
+							# 1) SignalBundle (buy_score >= 0.6)
+							sb = SignalBundle(
+								symbol=best_coin,
+								buy_score=0.8,
+								sell_score=0.0,
+								regime_on=True,
+								volatility=vol,
+								extras={"source": "fallback_buy_bridge"}
+							)
+							# 2) Minimal plan (quote based)
+							plan = OrderPlan(
+								symbol=best_coin,
+								side="BUY",
+								qty_quote=10.0,
+								entry_price=current_price,
+								reason="fallback_bridge",
+								confidence=0.8,
+								tags=["fallback", "demo"],
+							)
+							res = execute_with_filters(
+								plan,
+								market_state={"last_price": current_price},
+								account_state={"quote_free": float(available_usdt) if 'available_usdt' in locals() else 252.0}
+							)
+							logger.info(f"PIPELINE: fallback bridge EXEC status={res.status} success={res.success}")
+						except Exception as _fb:
+							logger.warning(f"PIPELINE: fallback bridge hata: {_fb}")
 			# Açık pozisyonda ekstra BUY engeli
 			if in_pos:
 				should_buy = False
@@ -644,6 +683,16 @@ def main() -> None:
 								"ENTRY | %s",
 								f"BUY {best_coin} qty={qty_base} @ {current_price:.6f} stop={pos.stop_price} | setup={'LONG' if long_setup else 'SCALP'}"
 							)
+
+							# (HOTFIX-B Demo) Fallback BUY sonrasında pipeline'a küçük bir manuel plan gönder
+							try:
+								from core.types import OrderPlan
+								from core.pipeline import execute_with_filters
+								manual_plan = OrderPlan(symbol=best_coin, side="BUY", qty_quote=10.0, entry_price=current_price, reason="fallback-demo")
+								mres = execute_with_filters(manual_plan, market_state={"last_price": current_price}, account_state={"quote_free": 250.0})
+								logger.info(f"PIPELINE: manual fallback buy => {mres.status} success={mres.success}")
+							except Exception as _pe:
+								logger.warning(f"Pipeline fallback demo başarısız: {_pe}")
 
 						except Exception as e:
 							logger.error(f"Emir gönderilemedi (BUY {best_coin}): {e}")

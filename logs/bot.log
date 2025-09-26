@@ -5361,3 +5361,336 @@ AttributeError: 'RiskManager' object has no attribute 'can_open'
 2025-09-24 18:04:36 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
 2025-09-24 18:04:37 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
 2025-09-24 18:04:37 | INFO | silent_core | [MOCK] Executing BUY TSTUSDT | qty_base=0.2 qty_quote=None
+2025-09-25 17:20:54 | INFO | silent_core | Testnet mode enabled
+2025-09-25 17:20:54 | WARNING | silent_core | optimize_strategy_parameters: backtest_func belirtilmedi, gerçek optimizasyon yapılmayacak!
+2025-09-25 17:21:05 | INFO | silent_core | REGIME OFF | symbol=SOLUSDT | msg=Trend kapalı, scalp mod
+2025-09-25 17:21:06 | ERROR | silent_core | Emir gönderilemedi (BUY SOLUSDT): OrderExecutor.execute_order() got an unexpected keyword argument 'qty'
+2025-09-25 17:21:16 | INFO | silent_core | REGIME OFF | symbol=SOLUSDT | msg=Trend kapalı, scalp mod
+2025-09-25 17:21:16 | INFO | silent_core | WAIT-REASON | symbol=SOLUSDT | msg=trend_off,no_brk_pb,no_micro
+2025-09-25 17:21:16 | INFO | silent_core | WAIT-REASON | SOLUSDT → trend_off,no_brk_pb,no_micro
+2025-09-25 17:21:36 | INFO | silent_core | REGIME OFF | symbol=SOLUSDT | msg=Trend kapalı, scalp mod
+2025-09-25 17:21:37 | INFO | silent_core | WAIT-REASON | symbol=SOLUSDT | msg=trend_off,no_brk_pb,no_micro
+2025-09-25 17:21:37 | INFO | silent_core | WAIT-REASON | SOLUSDT → trend_off,no_brk_pb,no_micro
+2025-09-25 17:22:14 | INFO | silent_core | REGIME OFF | symbol=SOLUSDT | msg=Trend kapalı, scalp mod
+2025-09-25 17:22:15 | ERROR | silent_core | Emir gönderilemedi (BUY SOLUSDT): OrderExecutor.execute_order() got an unexpected keyword argument 'qty'
+2025-09-25 17:22:24 | INFO | silent_core | REGIME OFF | symbol=SOLUSDT | msg=Trend kapalı, scalp mod
+2025-09-25 17:22:25 | INFO | silent_core | WAIT-REASON | symbol=SOLUSDT | msg=trend_off,lob_fail,no_brk_pb,no_micro
+2025-09-25 17:22:25 | INFO | silent_core | WAIT-REASON | SOLUSDT → trend_off,lob_fail,no_brk_pb,no_micro
+2025-09-25 17:23:15 | INFO | silent_core | REGIME OFF | symbol=SOLUSDT | msg=Trend kapalı, scalp mod
+2025-09-25 17:23:16 | ERROR | silent_core | Emir gönderilemedi (BUY SOLUSDT): OrderExecutor.execute_order() got an unexpected keyword argument 'qty'
+2025-09-25 17:23:25 | INFO | silent_core | REGIME OFF | symbol=SOLUSDT | msg=Trend kapalı, scalp mod
+2025-09-25 17:23:26 | ERROR | silent_core | Emir gönderilemedi (BUY SOLUSDT): OrderExecutor.execute_order() got an unexpected keyword argument 'qty'
+2025-09-25 17:23:37 | INFO | silent_core | REGIME OFF | symbol=SOLUSDT | msg=Trend kapalı, scalp mod
+2025-09-25 17:23:39 | ERROR | silent_core | Emir gönderilemedi (BUY SOLUSDT): OrderExecutor.execute_order() got an unexpected keyword argument 'qty'
+2025-09-25 17:23:48 | INFO | silent_core | REGIME OFF | symbol=SOLUSDT | msg=Trend kapalı, scalp mod
+2025-09-25 17:23:50 | ERROR | silent_core | Emir gönderilemedi (BUY SOLUSDT): OrderExecutor.execute_order() got an unexpected keyword argument 'qty'
+2025-09-25 17:23:59 | INFO | silent_core | REGIME OFF | symbol=SOLUSDT | msg=Trend kapalı, scalp mod
+2025-09-25 17:24:00 | ERROR | silent_core | Emir gönderilemedi (BUY SOLUSDT): OrderExecutor.execute_order() got an unexpected keyword argument 'qty'
+2025-09-25 17:24:09 | INFO | silent_core | REGIME OFF | symbol=SOLUSDT | msg=Trend kapalı, scalp mod
+2025-09-25 17:24:10 | INFO | silent_core | WAIT-REASON | symbol=SOLUSDT | msg=trend_off,lob_fail,no_brk_pb,no_micro
+2025-09-25 17:24:10 | INFO | silent_core | WAIT-REASON | SOLUSDT → trend_off,lob_fail,no_brk_pb,no_micro
+2025-09-25 17:24:49 | INFO | silent_core | REGIME OFF | symbol=SOLUSDT | msg=Trend kapalı, scalp mod
+2025-09-25 17:24:49 | INFO | silent_core | WAIT-REASON | symbol=SOLUSDT | msg=trend_off,lob_fail,no_brk_pb,no_micro
+2025-09-25 17:24:49 | INFO | silent_core | WAIT-REASON | SOLUSDT → trend_off,lob_fail,no_brk_pb,no_micro
+2025-09-25 17:25:13 | INFO | silent_core | REGIME OFF | symbol=SOLUSDT | msg=Trend kapalı, scalp mod
+2025-09-25 17:25:14 | INFO | silent_core | WAIT-REASON | symbol=SOLUSDT | msg=trend_off,no_brk_pb,no_micro
+2025-09-25 17:25:14 | INFO | silent_core | WAIT-REASON | SOLUSDT → trend_off,no_brk_pb,no_micro
+2025-09-25 17:26:13 | INFO | silent_core | REGIME OFF | symbol=SOLUSDT | msg=Trend kapalı, scalp mod
+2025-09-25 17:26:14 | ERROR | silent_core | Emir gönderilemedi (BUY SOLUSDT): OrderExecutor.execute_order() got an unexpected keyword argument 'qty'
+2025-09-25 17:26:24 | INFO | silent_core | REGIME OFF | symbol=SOLUSDT | msg=Trend kapalı, scalp mod
+2025-09-25 17:26:25 | ERROR | silent_core | Emir gönderilemedi (BUY SOLUSDT): OrderExecutor.execute_order() got an unexpected keyword argument 'qty'
+2025-09-25 17:26:34 | INFO | silent_core | REGIME OFF | symbol=SOLUSDT | msg=Trend kapalı, scalp mod
+2025-09-25 17:26:37 | ERROR | silent_core | Emir gönderilemedi (BUY SOLUSDT): OrderExecutor.execute_order() got an unexpected keyword argument 'qty'
+2025-09-25 17:26:47 | INFO | silent_core | REGIME OFF | symbol=SOLUSDT | msg=Trend kapalı, scalp mod
+2025-09-25 17:26:48 | ERROR | silent_core | Emir gönderilemedi (BUY SOLUSDT): OrderExecutor.execute_order() got an unexpected keyword argument 'qty'
+2025-09-25 17:26:57 | INFO | silent_core | REGIME OFF | symbol=SOLUSDT | msg=Trend kapalı, scalp mod
+2025-09-25 17:26:58 | ERROR | silent_core | Emir gönderilemedi (BUY SOLUSDT): OrderExecutor.execute_order() got an unexpected keyword argument 'qty'
+2025-09-25 17:27:07 | INFO | silent_core | REGIME OFF | symbol=SOLUSDT | msg=Trend kapalı, scalp mod
+2025-09-25 17:27:07 | INFO | silent_core | WAIT-REASON | symbol=SOLUSDT | msg=trend_off,lob_fail,no_brk_pb,no_micro
+2025-09-25 17:27:07 | INFO | silent_core | WAIT-REASON | SOLUSDT → trend_off,lob_fail,no_brk_pb,no_micro
+2025-09-25 17:27:55 | INFO | silent_core | REGIME OFF | symbol=SOLUSDT | msg=Trend kapalı, scalp mod
+2025-09-25 17:27:55 | INFO | silent_core | WAIT-REASON | symbol=SOLUSDT | msg=trend_off,no_brk_pb,no_micro
+2025-09-25 17:27:55 | INFO | silent_core | WAIT-REASON | SOLUSDT → trend_off,no_brk_pb,no_micro
+2025-09-25 17:28:18 | INFO | silent_core | REGIME OFF | symbol=SOLUSDT | msg=Trend kapalı, scalp mod
+2025-09-25 17:28:20 | ERROR | silent_core | Emir gönderilemedi (BUY SOLUSDT): OrderExecutor.execute_order() got an unexpected keyword argument 'qty'
+2025-09-25 17:28:29 | INFO | silent_core | REGIME OFF | symbol=SOLUSDT | msg=Trend kapalı, scalp mod
+2025-09-25 17:28:29 | ERROR | silent_core | Emir gönderilemedi (BUY SOLUSDT): OrderExecutor.execute_order() got an unexpected keyword argument 'qty'
+2025-09-25 17:28:39 | INFO | silent_core | REGIME OFF | symbol=SOLUSDT | msg=Trend kapalı, scalp mod
+2025-09-25 17:28:42 | ERROR | silent_core | Emir gönderilemedi (BUY SOLUSDT): OrderExecutor.execute_order() got an unexpected keyword argument 'qty'
+2025-09-25 17:28:51 | INFO | silent_core | REGIME OFF | symbol=SOLUSDT | msg=Trend kapalı, scalp mod
+2025-09-25 17:28:52 | ERROR | silent_core | Emir gönderilemedi (BUY SOLUSDT): OrderExecutor.execute_order() got an unexpected keyword argument 'qty'
+2025-09-25 17:29:01 | INFO | silent_core | REGIME OFF | symbol=SOLUSDT | msg=Trend kapalı, scalp mod
+2025-09-25 17:29:02 | INFO | silent_core | WAIT-REASON | symbol=SOLUSDT | msg=trend_off,lob_fail,no_brk_pb,no_micro
+2025-09-25 17:29:02 | INFO | silent_core | WAIT-REASON | SOLUSDT → trend_off,lob_fail,no_brk_pb,no_micro
+2025-09-25 17:29:43 | INFO | silent_core | REGIME OFF | symbol=SOLUSDT | msg=Trend kapalı, scalp mod
+2025-09-25 17:29:43 | INFO | silent_core | WAIT-REASON | symbol=SOLUSDT | msg=trend_off,lob_fail,no_brk_pb,no_micro
+2025-09-25 17:29:43 | INFO | silent_core | WAIT-REASON | SOLUSDT → trend_off,lob_fail,no_brk_pb,no_micro
+2025-09-25 17:30:31 | INFO | silent_core | REGIME OFF | symbol=SOLUSDT | msg=Trend kapalı, scalp mod
+2025-09-25 17:30:31 | INFO | silent_core | WAIT-REASON | symbol=SOLUSDT | msg=trend_off,no_brk_pb,no_micro
+2025-09-25 17:30:31 | INFO | silent_core | WAIT-REASON | SOLUSDT → trend_off,no_brk_pb,no_micro
+2025-09-25 17:30:55 | INFO | silent_core | REGIME OFF | symbol=SOLUSDT | msg=Trend kapalı, scalp mod
+2025-09-25 17:30:55 | INFO | silent_core | WAIT-REASON | symbol=SOLUSDT | msg=trend_off,no_brk_pb,no_micro
+2025-09-25 17:30:55 | INFO | silent_core | WAIT-REASON | SOLUSDT → trend_off,no_brk_pb,no_micro
+2025-09-25 17:32:02 | INFO | silent_core | REGIME OFF | symbol=SOLUSDT | msg=Trend kapalı, scalp mod
+2025-09-25 17:32:04 | ERROR | silent_core | Emir gönderilemedi (BUY SOLUSDT): OrderExecutor.execute_order() got an unexpected keyword argument 'qty'
+2025-09-25 17:32:14 | INFO | silent_core | REGIME OFF | symbol=SOLUSDT | msg=Trend kapalı, scalp mod
+2025-09-25 17:32:14 | INFO | silent_core | WAIT-REASON | symbol=SOLUSDT | msg=trend_off,no_brk_pb,no_micro
+2025-09-25 17:32:14 | INFO | silent_core | WAIT-REASON | SOLUSDT → trend_off,no_brk_pb,no_micro
+2025-09-25 17:33:19 | INFO | silent_core | REGIME OFF | symbol=SOLUSDT | msg=Trend kapalı, scalp mod
+2025-09-25 17:33:20 | INFO | silent_core | WAIT-REASON | symbol=SOLUSDT | msg=trend_off,lob_fail,no_brk_pb,no_micro
+2025-09-25 17:33:20 | INFO | silent_core | WAIT-REASON | SOLUSDT → trend_off,lob_fail,no_brk_pb,no_micro
+2025-09-25 17:33:55 | INFO | silent_core | REGIME OFF | symbol=SOLUSDT | msg=Trend kapalı, scalp mod
+2025-09-25 17:33:55 | INFO | silent_core | WAIT-REASON | symbol=SOLUSDT | msg=trend_off,no_brk_pb,no_micro
+2025-09-25 17:33:55 | INFO | silent_core | WAIT-REASON | SOLUSDT → trend_off,no_brk_pb,no_micro
+2025-09-25 17:34:28 | INFO | silent_core | REGIME OFF | symbol=SOLUSDT | msg=Trend kapalı, scalp mod
+2025-09-25 17:34:29 | INFO | silent_core | WAIT-REASON | symbol=SOLUSDT | msg=trend_off,lob_fail,no_brk_pb,no_micro
+2025-09-25 17:34:29 | INFO | silent_core | WAIT-REASON | SOLUSDT → trend_off,lob_fail,no_brk_pb,no_micro
+2025-09-25 17:35:04 | INFO | silent_core | REGIME OFF | symbol=SOLUSDT | msg=Trend kapalı, scalp mod
+2025-09-25 17:35:05 | INFO | silent_core | WAIT-REASON | symbol=SOLUSDT | msg=trend_off,lob_fail,no_brk_pb,no_micro
+2025-09-25 17:35:05 | INFO | silent_core | WAIT-REASON | SOLUSDT → trend_off,lob_fail,no_brk_pb,no_micro
+2025-09-25 17:36:06 | INFO | silent_core | REGIME OFF | symbol=SOLUSDT | msg=Trend kapalı, scalp mod
+2025-09-25 17:36:06 | INFO | silent_core | WAIT-REASON | symbol=SOLUSDT | msg=trend_off,lob_fail,no_brk_pb,no_micro
+2025-09-25 17:36:06 | INFO | silent_core | WAIT-REASON | SOLUSDT → trend_off,lob_fail,no_brk_pb,no_micro
+2025-09-25 17:36:32 | INFO | silent_core | REGIME OFF | symbol=SOLUSDT | msg=Trend kapalı, scalp mod
+2025-09-25 17:36:32 | INFO | silent_core | WAIT-REASON | symbol=SOLUSDT | msg=trend_off,lob_fail,no_brk_pb,no_micro
+2025-09-25 17:36:32 | INFO | silent_core | WAIT-REASON | SOLUSDT → trend_off,lob_fail,no_brk_pb,no_micro
+2025-09-25 17:37:04 | INFO | silent_core | REGIME OFF | symbol=SOLUSDT | msg=Trend kapalı, scalp mod
+2025-09-25 17:37:07 | ERROR | silent_core | Emir gönderilemedi (BUY SOLUSDT): OrderExecutor.execute_order() got an unexpected keyword argument 'qty'
+2025-09-25 17:37:16 | INFO | silent_core | REGIME OFF | symbol=SOLUSDT | msg=Trend kapalı, scalp mod
+2025-09-25 17:37:17 | INFO | silent_core | WAIT-REASON | symbol=SOLUSDT | msg=trend_off,no_brk_pb,no_micro
+2025-09-25 17:37:17 | INFO | silent_core | WAIT-REASON | SOLUSDT → trend_off,no_brk_pb,no_micro
+2025-09-25 17:37:49 | INFO | silent_core | REGIME OFF | symbol=SOLUSDT | msg=Trend kapalı, scalp mod
+2025-09-25 17:37:50 | INFO | silent_core | WAIT-REASON | symbol=SOLUSDT | msg=trend_off,no_brk_pb,no_micro
+2025-09-25 17:37:50 | INFO | silent_core | WAIT-REASON | SOLUSDT → trend_off,no_brk_pb,no_micro
+2025-09-25 17:38:58 | INFO | silent_core | REGIME OFF | symbol=SOLUSDT | msg=Trend kapalı, scalp mod
+2025-09-25 17:38:58 | INFO | silent_core | WAIT-REASON | symbol=SOLUSDT | msg=trend_off,lob_fail,no_brk_pb,no_micro
+2025-09-25 17:38:58 | INFO | silent_core | WAIT-REASON | SOLUSDT → trend_off,lob_fail,no_brk_pb,no_micro
+2025-09-25 17:39:26 | INFO | silent_core | REGIME OFF | symbol=SOLUSDT | msg=Trend kapalı, scalp mod
+2025-09-25 17:39:27 | INFO | silent_core | WAIT-REASON | symbol=SOLUSDT | msg=trend_off,no_brk_pb,no_micro
+2025-09-25 17:39:27 | INFO | silent_core | WAIT-REASON | SOLUSDT → trend_off,no_brk_pb,no_micro
+2025-09-25 17:41:54 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 17:41:55 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 17:41:55 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 17:41:56 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 17:41:56 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 17:41:56 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 17:41:57 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 17:41:57 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 17:41:57 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 17:41:57 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 17:41:58 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 17:41:58 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 17:41:58 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 17:41:59 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 17:41:59 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 17:41:59 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 17:41:59 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 17:42:00 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 17:42:00 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 17:42:00 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 17:42:01 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 17:42:01 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 17:42:01 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 17:42:01 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 17:42:02 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 17:42:02 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 17:42:02 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 17:42:03 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 17:42:03 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 17:42:03 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 17:42:03 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 17:42:04 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 17:42:04 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 17:42:04 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 17:42:05 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 17:42:05 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 17:42:05 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 17:42:05 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 17:42:06 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 17:42:06 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 17:42:07 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 17:42:07 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 17:42:07 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 17:42:08 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 17:42:08 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 17:42:08 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 17:42:08 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 17:42:09 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 17:42:09 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 17:42:10 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 17:42:10 | INFO | silent_core | [MOCK] Executing BUY TSTUSDT | qty_base=0.2 qty_quote=None
+2025-09-25 18:06:23 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:06:23 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:06:23 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:06:24 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:06:24 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:06:24 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:06:24 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:06:24 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:06:25 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:06:25 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:06:26 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:06:26 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:06:26 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:06:26 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:06:26 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:06:27 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:06:27 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:06:27 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:06:28 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:06:28 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:06:29 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:06:29 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:06:29 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:06:30 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:06:30 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:06:30 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:06:30 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:06:31 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:06:31 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:06:31 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:06:31 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:06:31 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:06:32 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:06:32 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:06:32 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:06:33 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:06:33 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:06:33 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:06:33 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:06:33 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:06:34 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:06:34 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:06:34 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:06:35 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:06:35 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:06:35 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:06:35 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:06:36 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:06:36 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:06:36 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:06:36 | INFO | silent_core | [MOCK] Executing BUY TSTUSDT | qty_base=0.2 qty_quote=None
+2025-09-25 18:10:00 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:10:00 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:10:00 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:10:01 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:10:01 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:10:01 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:10:02 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:10:02 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:10:02 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:10:02 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:10:03 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:10:03 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:10:03 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:10:03 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:10:04 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:10:04 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:10:04 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:10:05 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:10:05 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:10:05 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:10:06 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:10:06 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:10:06 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:10:07 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:10:07 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:10:07 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:10:07 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:10:07 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:10:07 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:10:08 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:10:08 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:10:08 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:10:08 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:10:09 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:10:09 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:10:09 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:10:09 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:10:10 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:10:10 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:10:10 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:10:11 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:10:11 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:10:11 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:10:12 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:10:12 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:10:12 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:10:13 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:10:13 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:10:13 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:10:13 | ERROR | silent_core | GridSearch error: name 'Strategy' is not defined
+2025-09-25 18:10:13 | INFO | silent_core | [MOCK] Executing BUY TSTUSDT | qty_base=0.2 qty_quote=None
+2025-09-26 17:31:44 | INFO | silent_core | Testnet mode enabled
+2025-09-26 17:31:44 | WARNING | silent_core | optimize_strategy_parameters: backtest_func belirtilmedi, gerçek optimizasyon yapılmayacak!
+2025-09-26 17:31:53 | CRITICAL | silent_core | Engine crashed: name 'os' is not defined
+Traceback (most recent call last):
+  File "/workspaces/project-silent-core/main.py", line 550, in main
+    if os.getenv("PIPELINE_FALLBACK_DEMO"):
+       ^^
+NameError: name 'os' is not defined. Did you forget to import 'os'
+
+2025-09-26 17:32:07 | INFO | silent_core | WAIT-REASON | symbol=SOLUSDT | msg=lob_fail,no_brk_pb
+2025-09-26 17:32:07 | INFO | silent_core | WAIT-REASON | SOLUSDT → lob_fail,no_brk_pb,no_micro
+2025-09-26 17:47:08 | INFO | silent_core | Testnet mode enabled
+2025-09-26 17:47:08 | WARNING | silent_core | optimize_strategy_parameters: backtest_func belirtilmedi, gerçek optimizasyon yapılmayacak!
+2025-09-26 17:47:18 | INFO | silent_core | WAIT-REASON | symbol=SOLUSDT | msg=lob_fail,no_brk_pb
+2025-09-26 17:47:18 | INFO | silent_core | WAIT-REASON | SOLUSDT → lob_fail,no_brk_pb
+2025-09-26 17:48:18 | INFO | silent_core | WAIT-REASON | symbol=SOLUSDT | msg=no_brk_pb
+2025-09-26 17:48:18 | INFO | silent_core | WAIT-REASON | SOLUSDT → no_brk_pb,no_micro
+2025-09-26 17:49:16 | INFO | silent_core | WAIT-REASON | symbol=SOLUSDT | msg=lob_fail,no_brk_pb
+2025-09-26 17:49:16 | INFO | silent_core | WAIT-REASON | SOLUSDT → lob_fail,no_brk_pb,no_micro
+2025-09-26 17:49:47 | CRITICAL | silent_core | Engine crashed: name 'os' is not defined
+Traceback (most recent call last):
+  File "/workspaces/project-silent-core/main.py", line 550, in main
+    if os.getenv("PIPELINE_FALLBACK_DEMO"):
+       ^^
+NameError: name 'os' is not defined. Did you forget to import 'os'
+
+2025-09-26 17:49:59 | INFO | silent_core | WAIT-REASON | symbol=SOLUSDT | msg=no_brk_pb
+2025-09-26 17:49:59 | INFO | silent_core | WAIT-REASON | SOLUSDT → no_brk_pb,no_micro
+2025-09-26 17:50:23 | INFO | silent_core | WAIT-REASON | symbol=SOLUSDT | msg=lob_fail,no_brk_pb
+2025-09-26 17:50:23 | INFO | silent_core | WAIT-REASON | SOLUSDT → lob_fail,no_brk_pb,no_micro
+2025-09-26 17:50:56 | INFO | silent_core | WAIT-REASON | symbol=SOLUSDT | msg=lob_fail,no_brk_pb
+2025-09-26 17:50:56 | INFO | silent_core | WAIT-REASON | SOLUSDT → lob_fail,no_brk_pb,no_micro
+2025-09-26 17:52:01 | INFO | silent_core | WAIT-REASON | symbol=SOLUSDT | msg=lob_fail,no_brk_pb
+2025-09-26 17:52:01 | INFO | silent_core | WAIT-REASON | SOLUSDT → lob_fail,no_brk_pb,no_micro
+2025-09-26 17:52:28 | INFO | silent_core | WAIT-REASON | symbol=SOLUSDT | msg=no_brk_pb
+2025-09-26 17:52:28 | INFO | silent_core | WAIT-REASON | SOLUSDT → no_brk_pb,no_micro
+2025-09-26 17:53:22 | INFO | silent_core | WAIT-REASON | symbol=SOLUSDT | msg=no_brk_pb
+2025-09-26 17:53:22 | INFO | silent_core | WAIT-REASON | SOLUSDT → no_brk_pb
+2025-09-26 17:53:50 | INFO | silent_core | WAIT-REASON | symbol=SOLUSDT | msg=lob_fail,no_brk_pb
+2025-09-26 17:53:50 | INFO | silent_core | WAIT-REASON | SOLUSDT → lob_fail,no_brk_pb
+2025-09-26 17:54:22 | INFO | silent_core | WAIT-REASON | symbol=SOLUSDT | msg=lob_fail,no_brk_pb
+2025-09-26 17:54:22 | INFO | silent_core | WAIT-REASON | SOLUSDT → lob_fail,no_brk_pb,no_micro
+2025-09-26 17:55:31 | INFO | silent_core | WAIT-REASON | symbol=SOLUSDT | msg=lob_fail,no_brk_pb
+2025-09-26 17:55:31 | INFO | silent_core | WAIT-REASON | SOLUSDT → lob_fail,no_brk_pb,no_micro
+2025-09-26 17:55:57 | INFO | silent_core | WAIT-REASON | symbol=XRPUSDT | msg=no_brk_pb
+2025-09-26 17:55:57 | INFO | silent_core | WAIT-REASON | XRPUSDT → no_brk_pb,no_micro
+2025-09-26 17:56:35 | INFO | silent_core | WAIT-REASON | symbol=SOLUSDT | msg=lob_fail,no_brk_pb
+2025-09-26 17:56:35 | INFO | silent_core | WAIT-REASON | SOLUSDT → lob_fail,no_brk_pb,no_micro
+2025-09-26 17:56:59 | INFO | silent_core | WAIT-REASON | symbol=SOLUSDT | msg=no_brk_pb
+2025-09-26 17:56:59 | INFO | silent_core | WAIT-REASON | SOLUSDT → no_brk_pb,no_micro
+2025-09-26 17:57:54 | INFO | silent_core | WAIT-REASON | symbol=SOLUSDT | msg=no_brk_pb
+2025-09-26 17:57:54 | INFO | silent_core | WAIT-REASON | SOLUSDT → no_brk_pb
+2025-09-26 17:58:37 | INFO | silent_core | WAIT-REASON | symbol=SOLUSDT | msg=lob_fail,no_brk_pb
+2025-09-26 17:58:37 | INFO | silent_core | WAIT-REASON | SOLUSDT → lob_fail,no_brk_pb,no_micro
+2025-09-26 17:59:41 | CRITICAL | silent_core | Engine crashed: name 'os' is not defined
+Traceback (most recent call last):
+  File "/workspaces/project-silent-core/main.py", line 550, in main
+    if os.getenv("PIPELINE_FALLBACK_DEMO"):
+       ^^
+NameError: name 'os' is not defined. Did you forget to import 'os'
+
+2025-09-26 17:59:53 | INFO | silent_core | WAIT-REASON | symbol=SOLUSDT | msg=lob_fail,no_brk_pb
+2025-09-26 17:59:53 | INFO | silent_core | WAIT-REASON | SOLUSDT → lob_fail,no_brk_pb,no_micro
+2025-09-26 18:00:15 | INFO | silent_core | WAIT-REASON | symbol=SOLUSDT | msg=no_brk_pb
+2025-09-26 18:00:15 | INFO | silent_core | WAIT-REASON | SOLUSDT → no_brk_pb,no_micro
+2025-09-26 18:01:17 | INFO | silent_core | WAIT-REASON | symbol=SOLUSDT | msg=no_brk_pb
+2025-09-26 18:01:17 | INFO | silent_core | WAIT-REASON | SOLUSDT → no_brk_pb,no_micro
+2025-09-26 18:02:29 | INFO | silent_core | WAIT-REASON | symbol=SOLUSDT | msg=lob_fail,no_brk_pb
+2025-09-26 18:02:29 | INFO | silent_core | WAIT-REASON | SOLUSDT → lob_fail,no_brk_pb,no_micro
+2025-09-26 18:03:22 | INFO | silent_core | WAIT-REASON | symbol=SOLUSDT | msg=lob_fail,no_brk_pb
+2025-09-26 18:03:22 | INFO | silent_core | WAIT-REASON | SOLUSDT → lob_fail,no_brk_pb,no_micro
+2025-09-26 18:03:58 | INFO | silent_core | WAIT-REASON | symbol=SOLUSDT | msg=lob_fail,no_brk_pb
+2025-09-26 18:03:58 | INFO | silent_core | WAIT-REASON | SOLUSDT → lob_fail,no_brk_pb,no_micro

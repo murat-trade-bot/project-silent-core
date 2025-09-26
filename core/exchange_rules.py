@@ -2,6 +2,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 import os
 from typing import Optional, Dict, Any
+import json
+import time
+import urllib.request
 
 
 @dataclass
@@ -51,9 +54,31 @@ def load_rules_for_symbol(symbol: str) -> SymbolRules:
       DEFAULT_TICK_SIZE, DEFAULT_STEP_SIZE, DEFAULT_MIN_NOTIONAL_USDT
     """
     if USE_EXCHANGE_INFO:
+        # 1) Modül sağlayıcısı
         r = _load_from_modules(symbol)
         if r:
             return r
+        # 2) REST fallback (Binance spot exchangeInfo) - testnet/prod autodetect
+        #    Çok sık çağrılmaması önerilir; basit cache eklemek isterseniz genişletilebilir.
+        base = os.getenv("BINANCE_EXCHANGEINFO_BASE", "https://testnet.binance.vision")
+        url = f"{base}/api/v3/exchangeInfo?symbol={symbol}"
+        try:
+            with urllib.request.urlopen(url, timeout=5) as resp:  # nosec - controlled URL
+                data = json.loads(resp.read().decode("utf-8"))
+            symbols = data.get("symbols") or []
+            if symbols:
+                sdef = symbols[0]
+                filters = {f["filterType"]: f for f in sdef.get("filters", [])}
+                tick = float(filters.get("PRICE_FILTER", {}).get("tickSize", 0.0001))
+                step = float(filters.get("LOT_SIZE", {}).get("stepSize", 0.0001))
+                min_notional = float(
+                    filters.get("NOTIONAL", {}).get("minNotional")
+                    or filters.get("MIN_NOTIONAL", {}).get("minNotional")
+                    or 5.0
+                )
+                return SymbolRules(symbol=symbol, tick_size=tick, step_size=step, min_notional_usdt=min_notional, quote="USDT")
+        except Exception:
+            pass
     return SymbolRules(
         symbol=symbol,
         tick_size=float(os.getenv("DEFAULT_TICK_SIZE", 0.0001)),
